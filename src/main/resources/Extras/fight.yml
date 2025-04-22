@@ -1,0 +1,58 @@
+prefix: "<dark_gray>[<#DC143C><bold>!</bold><#DC143C><dark_gray>] <bold>Challenge</bold> <dark_gray>»<reset>"
+
+lang:
+  fight-message: "[prefix] <white>[challenger] is <#DC143C>challenging<white> you in an arena fight<click:run_command:fight accept><#DFFF00>Accept | <click:run_command:fight accept><red>Decline"
+  fight-wait-challenger: "[prefix] <red>You need to wait for your opponent to accept your challenge!"
+  fight-already-challenge: "[prefix] <red>They are currently in challenge"
+  already-in-fight: "[prefix] <red>You are currently in fight"
+  # fight-duration is in actionbar
+  fight-duration: "Fight ends in: <#DC143C>[time]"
+  accept-fight: "[prefix] <white>Get ready to fight!"
+  decline-fight: "[prefix] <red>Your opponent decline the challenge"
+  leave-fight: "[prefix] <red>You leave the fight"
+  win-fight: "[prefix] <green>You win the challenge, will be teleporting you back in [time] seconds..."
+  lose-fight: "[prefix] <red>You lose the challenge"
+  draw-fight: "[prefix] <white>The fight between [challenger] vs [accepter] is draw"
+  arena-full: "[prefix] <gray>There are currently no avaiable arena..."
+  prevent-command: "[prefix] <gray>You cannot use command while fighting!"
+  cant-spectate: "[prefix] <gray>You cannot spectate while in challenge"
+  currently-spectate: "[prefix] <gray>You are current spectating <white>[challenger] <#DC143C>vs [accepter]"
+  win-broadcast: "[prefix] <white>[challenger] vs [accepter] is winning by <#DC143C>[winner]!"
+
+# radius is volume
+sound:
+  challenge-send:
+    sound: "block.anvil.place"
+    source: "BLOCK"
+    pitch: 1.7
+    radius: 1
+  challenge-accept:
+    sound: "entity.experience_orb.pickup"
+    source: "PLAYER"
+    pitch: 1
+    radius: 1
+  spectate-teleport:
+    sound: "entity.enderman.teleport"
+    source: "PLAYER"
+    pitch: 1
+    radius: 1
+
+# In seconds
+challenge-command-expired: 30
+
+# In seconds
+win-fight-back-wait: 3
+
+# commands if they first join fight
+console-commands: []
+
+# Fight Duration in minutes
+fight-duration: 15
+
+arenas:
+  world: arenas
+
+  # Setup only the first location, second location and spectate location
+
+  locations:
+    - "0,0,0 1,1,1 2,2,2"

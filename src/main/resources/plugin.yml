@@ -1,0 +1,6 @@
+name: Lipo-Hud
+version: '1.0.0'
+main: dev.lipoteam.lipoHud.LipoHud
+api-version: '1.21'
+authors: [ Nopal, zflrr ]
+description: Admin Plugin made by Lipo Team
