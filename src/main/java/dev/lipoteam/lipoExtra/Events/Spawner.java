@@ -123,7 +123,7 @@ public class Spawner implements Listener {
 
                     itemstack.setItemMeta(blockstate);
 
-                    if (stack > 2) {
+                    if (stack > 1) {
 
                         scheduler.runTaskLater(plugin, () -> {
                             Block newblock = block.getLocation().getBlock();
@@ -135,13 +135,14 @@ public class Spawner implements Listener {
 
                                 p.sendBlockChange(newblock.getLocation(), newblock.getBlockData());
 
-                                dataManager.setdata(block.getLocation().getBlock(), "stack", stack - 1);
-                                StackingSystem(block.getLocation().getBlock(), stack - 1, spawner);
+                                if (stack > 2) {
+                                    dataManager.setdata(block.getLocation().getBlock(), "stack", stack - 1);
+                                    StackingSystem(block.getLocation().getBlock(), stack - 1, spawner);
+                                }
+
                             }
                         }, 1L);
 
-                    } else {
-                        dataManager.unsetdata(block, "stack");
                     }
 
                 }
@@ -167,7 +168,7 @@ public class Spawner implements Listener {
                     }
                     if (!found) {
                         if (stack > 1) {
-                            if (stack > 2 && dataManager.hasData(itemstack, "stack")) {
+                            if (dataManager.hasData(itemstack, "stack")) {
                                 dataManager.setdata(itemstack, "stack", stack - 1);
                                 ItemMeta newmeta = itemstack.getItemMeta();
                                 newmeta.displayName(mm.deserialize("<!i>" + spawner.getSpawnedType() + " Spawner <dark_gray>(" + (stack - 1) + ")"));
