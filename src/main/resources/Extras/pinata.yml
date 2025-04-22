@@ -1,0 +1,82 @@
+enabled: true
+
+prefix: "<dark_gray>[<orange><b>!</b><dark_gray>] <orange><b>Pinata</b> <dark_gray>»"
+
+pinata-spawn: "spawn 0,100,0"
+
+# make sure cmi is connected
+vote-threshold: 80
+vote-current: 0
+party-start-commands:
+    - 'pinata start whackit'
+
+lang:
+    broadcast-title: "[prefix] Vote Party will spawn in [time] seconds!"
+    broadcast-subtitle: "[prefix] Vote Party will spawn in [time] seconds!"
+    broadcast-actionbar: "[prefix] Vote Party will spawn in [time] seconds!"
+    broadcast-chat: "[prefix] Vote Party will spawn in [time] seconds!"
+    broadcast-end: "[prefix] Pinata party have ended"
+    vote-add: "[prefix] add [number] vote in vote party"
+    vote-remove: "[prefix] remove [number] vote in vote party"
+    vote-reset: "[prefix] vote party reset to 0"
+
+broadcast:
+    types:
+        - title
+        - subtitle
+        - actionbar
+        - chat
+    # In seconds
+    time: 5
+    # in ticks
+    title-fadein: 5
+    title-fadeout: 20
+    title-stay: 5
+
+    sound: entity.ender_dragon.growl
+    sound-count: block.note_block.banjo
+
+party-types:
+    whack-it:
+        enabled: true
+        area: "5x5"
+        entity: LLAMA
+        is-baby: true
+
+        # in seconds
+        duration-game: 30
+        duration-despawn: 5
+
+        sound-change: block.note_block.bell
+
+        particle-spawn:
+            particle: CLOUD
+            count: 10
+            speed: 0.3
+        particle-hit:
+            particle: TOTEM_OF_UNDYING
+            count: 10
+            speed: 0.3
+
+    pinata-run:
+        enabled: true
+        walk-dust: "rainbow"
+        aura-dust: null
+    pinata-hang:
+        enabled: true
+        knockback: 1
+        dust: "rainbow"
+
+rewards:
+    - type: console_commands
+      # over 100
+      chance: 10
+      sound: entity.experience_orb.pickup
+      commands:
+          - give [player] diamond 1
+    - type: console_commands
+        # over 100
+      chance: 30
+      sound: entity.experience_orb.pickup
+      commands:
+          - give [player] leather 1

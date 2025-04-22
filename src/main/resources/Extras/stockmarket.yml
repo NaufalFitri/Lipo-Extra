@@ -1,0 +1,38 @@
+enabled: true
+
+prefix: "<dark_gray>[<#704dff><b>!</b><dark_gray>] <#704dff><b>Market</b> <dark_gray>»"
+
+lang:
+  announce: "[prefix] <white>The stock market price have changed"
+
+troubleshoot: true
+
+# In minutes
+price-change-every: 180
+
+demand-scale-factor: 10000
+
+not-change-if-under: 300
+
+# How many demand needed to price change
+demand-threshold: 1000
+
+random-bound:
+  enabled: true
+  first: 0.01
+  last: 0.2
+
+percentage-up-down: 0.02
+
+# if you use dynamic, please change the random-bound or percentage-up-down because it will have changed rapidly
+dynamic: false
+
+# There's demand floor and demand ceil which works like this
+# if player selling (demand) is less than demand floor, the price will go up
+# if demand is more than demand ceil, the price will go down
+# if they are in between, the price will stay
+
+# demand >= ceil = price+++
+# demand <= floor = price---
+# else = price
+market-sell:

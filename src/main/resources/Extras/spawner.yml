@@ -1,0 +1,21 @@
+enabled: false
+
+prefix: "<dark_gray>[<#e63700><b>!</b><dark_gray>] <#e63700><b>Spawner</b> <dark_gray>»"
+
+lang:
+  max: "[prefix] <red>Spawner stacking for this spawner is max out!"
+
+hologram:
+  name: "[spawner] x[stack]"
+  time: "Spawns in [time]!"
+
+max-stacking: 15
+
+# +2 per stack
+sec-per-stacking: 2
+
+initial-seconds: 5
+
+worlds:
+  - resource
+  - irisworld

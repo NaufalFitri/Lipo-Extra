@@ -1,16 +1,17 @@
-package dev.lipoteam.lipoHud.Files;
+package dev.lipoteam.lipoExtra.Files;
 
-import dev.lipoteam.lipoHud.DataManager;
-import dev.lipoteam.lipoHud.LipoHud;
+import dev.lipoteam.lipoExtra.Manager.DataManager;
+import dev.lipoteam.lipoExtra.LipoExtra;
+import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Registry;
+import org.bukkit.World;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.potion.PotionEffectType;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 public class RamadanConfig {
 
@@ -18,17 +19,14 @@ public class RamadanConfig {
     private final Plugin plugin;
     private final DataManager manager;
 
-    public RamadanConfig(FileConfiguration config, LipoHud plugin) {
+    public RamadanConfig(FileConfiguration config, LipoExtra plugin) {
         this.config = config;
         this.plugin = plugin;
         manager = new DataManager(plugin);
     }
 
-    public String prefix(String text) {
-        String newtext = "";
-        if (config.getString("prefix") != null)
-            newtext = Objects.requireNonNull(config.getString("prefix")) + " " + text;
-        return manager.hex(newtext);
+    public String prefix() {
+        return config.getString("prefix");
     }
 
     public Boolean enabled() {
@@ -51,5 +49,8 @@ public class RamadanConfig {
         return config.getInt("sahur-effect-amplifier");
     }
 
+    public World getWorld() {
+        return Bukkit.getWorld(config.getString("world"));
+    }
 
 }

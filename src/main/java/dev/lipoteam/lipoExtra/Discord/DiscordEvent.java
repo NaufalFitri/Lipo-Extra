@@ -1,14 +1,14 @@
-package dev.lipoteam.lipoHud.Discord;
+package dev.lipoteam.lipoExtra.Discord;
 
-import dev.lipoteam.lipoHud.Files.DiscordConfig;
-import dev.lipoteam.lipoHud.LipoHud;
+import dev.lipoteam.lipoExtra.Files.DiscordConfig;
+import dev.lipoteam.lipoExtra.LipoExtra;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Role;
+import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel;
-import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.requests.GatewayIntent;
@@ -22,13 +22,13 @@ import java.util.Objects;
 
 public class DiscordEvent extends ListenerAdapter {
 
-    private LipoHud plugin;
+    private LipoExtra plugin;
     private DiscordConfig config;
     private String token = null;
-    private JDA jda = null;
+    public static JDA jda = null;
     private BukkitScheduler scheduler;
 
-    public DiscordEvent(DiscordConfig config, LipoHud plugin) {
+    public DiscordEvent(DiscordConfig config, LipoExtra plugin) {
 
         this.plugin = plugin;
         scheduler = plugin.getServer().getScheduler();
@@ -84,7 +84,8 @@ public class DiscordEvent extends ListenerAdapter {
                             return;
                         }
                     } catch (NumberFormatException ee) {
-                        System.out.println("Invalid role ID in config: " + roleId);
+                        plugin.getLogger().warning("Invalid role ID in config: " + roleId);
+                        return;
                     }
                 }
             }
@@ -107,6 +108,17 @@ public class DiscordEvent extends ListenerAdapter {
                 scheduler.runTask(plugin, () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), finalCmd));
             }
 
+
+            if (channel.getType().isThread()) {
+                ThreadChannel thread = e.getChannel().asThreadChannel();
+
+                if (cachedMessage.getLockThread()) {
+                    thread.getManager().setLocked(true).queue();
+                } else if (cachedMessage.getUnlockThread()) {
+                    thread.getManager().setLocked(false).queue();
+                }
+            }
+
             if (!cachedMessage.getEmbedWords().isEmpty()) {
                 String url = cachedMessage.getEmbedUrl();
                 String title = cachedMessage.getEmbedWords().getFirst();
@@ -127,6 +139,5 @@ public class DiscordEvent extends ListenerAdapter {
         }
 
     }
-
 
 }

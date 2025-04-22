@@ -1,0 +1,53 @@
+enabled: false
+
+token: ""
+
+message-received:
+  - symbol: '!'
+    messages:
+      - contains: "help"
+        # Any discord role id or can be default ("default")
+        permission-role-id:
+          - "231421441"
+        reply:
+          # Can be either messages or embed
+          - type: messages
+            words:
+              - "Hello"
+              - "What do you need?"
+      - contains: "embed"
+        permission-role-id: "default"
+        reply:
+          - type: embed
+            color: "#5cad32" #Example
+            url: ""
+            words:
+              # For title
+              - "title"
+              - "description"
+              - "images-url:http://cravatar.eu/avatar/WanderingSteve55/64.png"
+          - type: commands
+            placeholders:
+              - "%player%"
+              - "%number%"
+            commands:
+              - "say hi %player% %number%"
+    # and so on
+
+commands:
+  - backup-pin:
+    descriptions: "To check backup pin"
+    options:
+      - name: name
+        data: string # there are user, int
+        required: false # can be optional can be required
+        description: "The Player name"
+        permissions:
+          - Developer
+          - Discord Mod
+    reply:
+      - type: messages-custom
+        ephemeral: true
+        words:
+          - "The backup pin for %0% is %1%" #%1% is custom fetch from the plugin. if the options have more than 1, the custom fetch is the number after the options size
+

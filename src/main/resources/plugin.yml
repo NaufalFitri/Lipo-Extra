@@ -1,6 +1,8 @@
-name: Lipo-Hud
+name: Lipo-Extra
 version: '1.0.0'
-main: dev.lipoteam.lipoHud.LipoHud
+main: dev.lipoteam.lipoExtra.LipoExtra
 api-version: '1.21'
-authors: [ Nopal, zflrr ]
-description: Admin Plugin made by Lipo Team
+authors: [ Nopal, Nxsrulswd ]
+description: Extra Plugin made by Lipo Team
+softdepend: [Jobs, CMILib, NoteBlockAPI, AdvancedChests, ProCosmetics]
+depend: [CMI, CoinsEngine, ProCosmetics]

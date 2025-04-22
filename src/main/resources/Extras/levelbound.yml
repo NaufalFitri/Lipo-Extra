@@ -1,0 +1,25 @@
+enabled: true
+
+prefix: "<dark_gray>[<#ffd32c><b>!<dark_gray>] <#ffd32c><b>Boundary</b> <dark_gray>»"
+
+lang:
+  cannot-enter: "[prefix] <red>You cannot enter [world], you need at least [level] level to enter!"
+
+sound:
+  cannot-enter:
+    sound: "entity.ghast.warn"
+    source: "AMBIENT"
+    pitch: 1.7
+    radius: 1
+
+# in seconds
+delay: 10
+
+# level to enter (CMI rank) <- need to be number
+worlds:
+  irisworld_nether:
+    level: 10
+    rtp-if-enter: true
+  irisworld_the_end:
+    level: 25
+    rtp-if-enter: false

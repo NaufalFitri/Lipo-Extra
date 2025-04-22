@@ -1,12 +1,14 @@
-package dev.lipoteam.lipoExtra;
+package dev.lipoteam.lipoExtra.Manager;
 
 import com.jeff_media.customblockdata.CustomBlockData;
+import dev.lipoteam.lipoExtra.LipoExtra;
 import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.title.Title;
 import org.bukkit.ChatColor;
 import org.bukkit.NamespacedKey;
 import org.bukkit.block.Block;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -20,6 +22,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.Base64;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Objects;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -73,6 +77,15 @@ public class DataManager {
                 case Boolean b -> blockData.set(key, PersistentDataType.BOOLEAN, b);
                 case Double d -> blockData.set(key, PersistentDataType.DOUBLE, d);
                 case null, default -> blockData.set(key, PersistentDataType.STRING, serialize(data));
+            }
+        } else if (what instanceof Entity) {
+            PersistentDataContainer entityData = ((Entity) what).getPersistentDataContainer();
+            switch (data) {
+                case String s -> entityData.set(key, PersistentDataType.STRING, s);
+                case Integer i -> entityData.set(key, PersistentDataType.INTEGER, i);
+                case Boolean b -> entityData.set(key, PersistentDataType.BOOLEAN, b);
+                case Double d -> entityData.set(key, PersistentDataType.DOUBLE, d);
+                case null, default -> entityData.set(key, PersistentDataType.STRING, serialize(data));
             }
         }
 
@@ -145,6 +158,25 @@ public class DataManager {
                 thedata = playerData.get(key, PersistentDataType.BOOLEAN);
             } else if (playerData.has(key, PersistentDataType.DOUBLE)) {
                 thedata = playerData.get(key, PersistentDataType.DOUBLE);
+            }
+
+        } else if (what instanceof Block b) {
+
+            PersistentDataContainer blockData = new CustomBlockData(b, plugin);
+
+            if (blockData.has(key, PersistentDataType.STRING)) {
+                thedata = blockData.get(key, PersistentDataType.STRING);
+
+                if (deep) {
+                    thedata = deserialize((String) thedata);
+                }
+
+            } else if (blockData.has(key, PersistentDataType.INTEGER)) {
+                thedata = blockData.get(key, PersistentDataType.INTEGER);
+            } else if (blockData.has(key, PersistentDataType.BOOLEAN)) {
+                thedata = blockData.get(key, PersistentDataType.BOOLEAN);
+            } else if (blockData.has(key, PersistentDataType.DOUBLE)) {
+                thedata = blockData.get(key, PersistentDataType.DOUBLE);
             }
 
         }

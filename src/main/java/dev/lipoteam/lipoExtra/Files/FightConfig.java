@@ -1,7 +1,7 @@
-package dev.lipoteam.lipoHud.Files;
+package dev.lipoteam.lipoExtra.Files;
 
-import dev.lipoteam.lipoHud.DataManager;
-import dev.lipoteam.lipoHud.LipoHud;
+import dev.lipoteam.lipoExtra.Manager.DataManager;
+import dev.lipoteam.lipoExtra.LipoExtra;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.sound.Sound;
 import org.bukkit.Bukkit;
@@ -29,7 +29,7 @@ public class FightConfig {
 
     private final Team spectators;
 
-    public FightConfig(FileConfiguration config, LipoHud plugin) {
+    public FightConfig(FileConfiguration config, LipoExtra plugin) {
         this.config = config;
         this.plugin = plugin;
         ScoreboardManager scoreboardManager = Bukkit.getScoreboardManager();
@@ -57,6 +57,10 @@ public class FightConfig {
 
     public String FightMessage() {
         return Objects.requireNonNull(config.getString("lang.fight-message"));
+    }
+
+    public String FightBroadcast() {
+        return config.getString("lang.fight-broadcast");
     }
 
     public String FightAlreadyChallenge() {
@@ -147,6 +151,7 @@ public class FightConfig {
         }
         return null;
     }
+
     public Sound ChallengeAcceptSound() {
         @Subst("") String string = config.getString("sound.challenge-accept.sound");
         if (string != null) {
@@ -230,5 +235,10 @@ public class FightConfig {
         return locs;
 
     }
+
+    public boolean isAutoHeal() {
+        return config.getBoolean("auto-heal");
+    }
+
 
 }

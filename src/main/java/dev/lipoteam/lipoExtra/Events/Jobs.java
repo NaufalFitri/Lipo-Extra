@@ -1,11 +1,11 @@
-package dev.lipoteam.lipoHud.Events;
+package dev.lipoteam.lipoExtra.Events;
 
 import com.gamingmesh.jobs.api.JobsPrePaymentEvent;
 import com.gamingmesh.jobs.container.Job;
 import com.google.common.util.concurrent.AtomicDouble;
-import dev.lipoteam.lipoHud.DataManager;
-import dev.lipoteam.lipoHud.Files.JobsConfig;
-import dev.lipoteam.lipoHud.LipoHud;
+import dev.lipoteam.lipoExtra.Manager.DataManager;
+import dev.lipoteam.lipoExtra.Files.JobsConfig;
+import dev.lipoteam.lipoExtra.LipoExtra;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Bukkit;
@@ -21,7 +21,7 @@ import java.util.concurrent.TimeUnit;
 
 public class Jobs implements Listener {
 
-    private final LipoHud plugin;
+    private final LipoExtra plugin;
     private final DataManager dataManager;
     private JobsConfig config;
     private boolean enabled;
@@ -39,7 +39,7 @@ public class Jobs implements Listener {
     private boolean allcannotearn;
     private final String restarttime;
 
-    public Jobs(JobsConfig config, LipoHud plugin) {
+    public Jobs(JobsConfig config, LipoExtra plugin) {
 
         this.plugin = plugin;
         dataManager = new DataManager(plugin);

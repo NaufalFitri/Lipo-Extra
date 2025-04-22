@@ -1,7 +1,7 @@
-package dev.lipoteam.lipoHud.Files;
+package dev.lipoteam.lipoExtra.Files;
 
-import dev.lipoteam.lipoHud.Discord.CachedMessages;
-import dev.lipoteam.lipoHud.LipoHud;
+import dev.lipoteam.lipoExtra.Discord.CachedMessages;
+import dev.lipoteam.lipoExtra.LipoExtra;
 import org.bukkit.configuration.file.FileConfiguration;
 
 import java.util.HashMap;
@@ -10,12 +10,12 @@ import java.util.Map;
 
 public class DiscordConfig {
 
-    private final LipoHud plugin;
+    private final LipoExtra plugin;
     private FileConfiguration config;
 
     private final Map<String, Map<String, CachedMessages>> messages = new HashMap<>();
 
-    public DiscordConfig(FileConfiguration config, LipoHud plugin) {
+    public DiscordConfig(FileConfiguration config, LipoExtra plugin) {
 
         this.plugin = plugin;
         this.config = config;
@@ -60,6 +60,10 @@ public class DiscordConfig {
                     } else if ("commands".equalsIgnoreCase(type)) {
                         cachedMessage.setPlaceholders((List<String>) reply.get("placeholders"));
                         cachedMessage.setCommands((List<String>) reply.get("commands"));
+                    } else if ("lockthread".equalsIgnoreCase(type)) {
+                        cachedMessage.setLockThread();
+                    } else if ("unlockthread".equalsIgnoreCase(type)) {
+                        cachedMessage.setUnlockThread();
                     }
                 }
 

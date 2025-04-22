@@ -1,4 +1,8 @@
 package dev.lipoteam.lipoExtra.Manager;
 
-public class LeaderboardManager {
+import java.util.List;
+
+public record LeaderboardManager(String type, String title, String currency, String itemmaterial, String itemname,
+                                 List<String> itemlore, String command) {
+
 }

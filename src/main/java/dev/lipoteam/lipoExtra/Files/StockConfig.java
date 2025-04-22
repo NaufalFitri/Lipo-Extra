@@ -1,16 +1,14 @@
-package dev.lipoteam.lipoHud.Files;
+package dev.lipoteam.lipoExtra.Files;
 
 import com.Zrips.CMI.CMI;
 import com.Zrips.CMI.Modules.Worth.WorthItem;
 import com.Zrips.CMI.Modules.Worth.WorthManager;
 import com.google.common.util.concurrent.AtomicDouble;
-import dev.lipoteam.lipoHud.LipoHud;
+import dev.lipoteam.lipoExtra.LipoExtra;
 import net.Zrips.CMILib.Items.CMIMaterial;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.scheduler.BukkitScheduler;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.HashMap;
@@ -21,7 +19,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class StockConfig {
 
     private final FileConfiguration config;
-    private LipoHud plugin;
+    private LipoExtra plugin;
     double defaultmax = 0.600;
     static int defaultceil = 1300;
     static int defaultfloor = 900;
@@ -31,7 +29,7 @@ public class StockConfig {
     private static final ConcurrentHashMap<CMIMaterial, AtomicInteger> marketfloor = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<CMIMaterial, AtomicInteger> marketceil = new ConcurrentHashMap<>();
 
-    public StockConfig(FileConfiguration config, LipoHud plugin) {
+    public StockConfig(FileConfiguration config, LipoExtra plugin) {
 
         this.config = config;
         this.plugin = plugin;
@@ -88,7 +86,7 @@ public class StockConfig {
         try {
             config.save(Paths.get(plugin.getDataFolder().toString(), "Extras", "stockmarket.yml").toFile());
         } catch (IOException e) {
-            Bukkit.getLogger().warning(String.valueOf(e));
+            plugin.getLogger().warning(String.valueOf(e));
         }
 
     }
@@ -157,5 +155,11 @@ public class StockConfig {
     public boolean TroubleShoot() {
         return config.getBoolean("troubleshoot");
     }
+
+    public boolean Dynamic() { return config.getBoolean("dynamic"); }
+
+    public double MaxSellFactor() { return config.getDouble("sell-factor-max"); }
+
+    public int SoldFactor() { return config.getInt("sold-scale-factor"); }
 
 }

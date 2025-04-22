@@ -1,0 +1,215 @@
+# The prefix for the plugin
+prefix : "&8[&9&l!&8] &9&lLipoExtra &8»&f"
+
+
+beta-items:
+  enabled: true
+  # true = beta, false = notbeta
+  beta-or-notbeta: true
+  blacklist-items:
+    - SHULKER_BOX
+    - BUNDLE
+  stars-scale-factor: 3.6e+6
+
+fetch:
+  enabled: true
+  title: "Welcome to LipoMC"
+  subtitle: "SEASON 3"
+
+  # in ticks
+  fade-in: 10
+  stay: 40
+  fade-out: 10
+
+  coins:
+    messages:
+      - "Thank you for waiting for us!"
+      - "Here's your converted coins"
+      - "We appreciate your loyalty with us <3"
+  ranks:
+    messages:
+      - "Thank you for supporting us previously"
+      - "We are very thankful for your sincerity"
+      - "Here's your new Rank in LIPO S3"
+      - "Enjoy <3"
+
+lang:
+  particle-mode-change: "[prefix] <white>[player] flight particle mode <#00ccc0>[mode]"
+
+placeholderapi:
+
+  # can be used in placeholder %lipo_progress_time_totaltime%
+  # time is in MM:ss format
+  progress: "<dark_gray>[ <light_gray>%progress%<blue>%progress-done% <dark_gray>]"
+  bar-length: 10
+  bar-char: "|"
+
+# Needs Procosmetics Plugin and CoinsEngine
+procosmetics:
+
+  hook:
+    enabled: true
+    currency: "lipocoins"
+
+  particle: "particle"
+
+cmi-addon:
+
+  recharge-limit:
+    enabled: true
+    limit: 3600
+    msg: "<red>You have reached flight recharge limit!"
+
+  pve-end:
+    enabled: false
+    command: "flyc true"
+
+NoteBlockAPI:
+  enabled: false
+
+command:
+
+  interrupt:
+
+    enabled: true
+
+    tpa:
+      command: "lh form simple %receiver% tpa"
+      delay: 10
+
+particle:
+
+  on-fly:
+
+    particle: CLOUD
+    speed: 0.07
+    speed-move: 0.1
+    count: 3
+    ticks: 5
+    radius: 10
+    disable-worlds:
+      - arenas
+
+sound:
+
+  on-command:
+
+    enabled: true
+    sound: "ui.button.click"
+    volume: 1
+    pitch: 1
+
+displays:
+
+  # Override every text for item and inventory title by replacing:
+  # - placeholder from placeholderAPI
+  # - and using Adventure API (MiniMessaging)
+  inv-text-override: true
+
+  # This features only work if inv-text-override is enabled.
+  # Change whole inventory title for bedrock player if there are
+  # numbering in the title such "<number-1>"
+  # example:
+  #    title: "<number-1>This is <❤-rank>'s inventory"
+  inv-bedrock-title:
+
+    1: "%luckperms_prefix%'s Inventory"
+    2:
+
+  # LipoHud's ActionBar stop displaying for a certain
+  # time of period if there are other actionbar interrupting
+  ac-delay-if-interrupt: false
+
+  # What list of string that should we detect to prevent
+  # our action-bar displayed
+  ac-delay-if-string:
+    - "2d"
+    - "mode"
+
+  # The period of the ActionBar will stop displaying
+  ac-delay-period: 45
+
+  # We offer differentiation between Java and Bedrock settings
+  # Floodgate need to be installed because Lipo want to make
+  # Not-premium Bedrock player to join too
+  java:
+
+    action-bar:
+
+      enabled: true
+
+      text: "action-bar"
+
+  # In Bedrock section, we also offer bedrock-type form
+  # Which you can create on your own, just add the name
+  # of the form and follow the example below
+  bedrock:
+
+    action-bar:
+
+      enabled: true
+
+      text: "action-bar"
+
+    custom-form:
+
+      # The title of the form will follow this label
+      form1:
+
+        # Actually you can put any name here, but to make you understand for the
+        # action section, this is actually corresponding with response0 and so on
+        # For custom form there are: (type -> contains)
+        # dropdown -> label, options
+        # input -> label, placeholder
+        # toggle -> label
+        # slider -> label, stepper
+
+        # dropdown options had 'players' to display all online players
+
+        '0':
+
+          type: dropdown
+          label: drop it down
+          options:
+            - helo
+
+        '1':
+
+          type: input
+          label: put something
+          placeholder: a text
+
+        '2':
+
+          type: slider
+          label: slide it
+          stepper:
+            - 0
+            - 10
+            - 1
+            - 5
+
+        action:
+
+          type: command
+          command: msg response0 response1
+
+    simple-form:
+
+      # The title of the form will follow this label
+      form2:
+
+        # This is like the description for the form and follow by the buttons
+        content: Hello
+
+        # Same like custom form, but it only contains (* means compulsory)
+        # label*, img-type*, action (command).
+        # if you do not want to use img-type, you need to put it with value nothing
+        # if you want to use img-type there are, URL and PATH, where URL can be any
+        # image type from your browser.
+        '0':
+
+          label: Click me
+          img-type: nothing
+          action: fly
+

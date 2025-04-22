@@ -1,0 +1,17 @@
+enabled: true
+
+prefix: "<dark_gray>[<#ffd32c><b>!<dark_gray>] <#ffd32c><b>Jobs</b> <dark_gray>»"
+
+# Time format is "DAY HH:MM"
+lang:
+  over-limit: "[prefix] <red>You can earn from [job] after [time]"
+  cannot-earn: "[prefix] <red>You can gain income from [job] at [time]"
+  cant-earn-after-restart: "[prefix] <red>You can start earning at [time]"
+
+# In minutes
+reset-every: 30
+
+# They cannot earn for 'reset-every' minutes after server restart
+cannot-earn-after-restart: true
+
+jobs-earn-limit:

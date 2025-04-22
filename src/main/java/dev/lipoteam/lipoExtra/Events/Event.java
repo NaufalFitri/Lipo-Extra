@@ -1,24 +1,34 @@
-package dev.lipoteam.lipoHud.Events;
+package dev.lipoteam.lipoExtra.Events;
 
+import com.Zrips.CMI.CMI;
+import com.Zrips.CMI.Containers.CMIUser;
+import com.Zrips.CMI.events.CMIPvEEndEventAsync;
+import com.Zrips.CMI.events.CMIPvEStartEventAsync;
 import com.comphenix.protocol.PacketType;
 import com.comphenix.protocol.ProtocolLibrary;
 import com.comphenix.protocol.ProtocolManager;
 import com.comphenix.protocol.events.*;
-import de.tr7zw.changeme.nbtapi.NBT;
-import de.tr7zw.changeme.nbtapi.iface.ReadWriteNBTList;
-import dev.lipoteam.lipoHud.DataManager;
-import dev.lipoteam.lipoHud.Files.Configurations;
-import dev.lipoteam.lipoHud.LipoHud;
+import dev.lipoteam.lipoExtra.Commands.BetaCommands;
+import dev.lipoteam.lipoExtra.Files.TagConfig;
+import dev.lipoteam.lipoExtra.Manager.DataManager;
+import dev.lipoteam.lipoExtra.Files.Configurations;
+import dev.lipoteam.lipoExtra.LipoExtra;
 import me.clip.placeholderapi.PlaceholderAPI;
+import net.kyori.adventure.key.Key;
 import net.kyori.adventure.sound.Sound;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.MiniMessage;
-import net.kyori.adventure.text.serializer.json.JSONComponentSerializer;
 import org.bukkit.*;
+import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.ClickType;
+import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.player.*;
 import org.bukkit.event.server.TabCompleteEvent;
@@ -30,9 +40,19 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitScheduler;
 import org.bukkit.scheduler.BukkitTask;
 import org.geysermc.floodgate.api.FloodgateApi;
+import se.file14.procosmetics.api.events.PlayerEquipCosmeticEvent;
+import se.file14.procosmetics.api.events.PlayerUnequipCosmeticEvent;
+import su.nightexpress.coinsengine.api.CoinsEngineAPI;
+import su.nightexpress.coinsengine.api.currency.Currency;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class Event implements Listener {
 
@@ -40,15 +60,20 @@ public class Event implements Listener {
 
     public static ConcurrentHashMap<UUID, String> playerClient = new ConcurrentHashMap<>();
     private final HashMap<String, BukkitTask> bukkitTasks = new HashMap<>();
+    private final HashMap<UUID, AtomicInteger> chargelimit = new HashMap<>();
     private ConcurrentHashMap<String, String> bedrockInvTitle = new ConcurrentHashMap<>();
-    private ConcurrentHashMap<String, HashMap<String, Integer>> cIList = new ConcurrentHashMap<>();
+    private ConcurrentHashMap<String, Map.Entry<String, Integer>> cIList = new ConcurrentHashMap<>();
     private final LinkedHashMap<UUID, BukkitTask> flyparticles = new LinkedHashMap<>();
     public static HashSet<UUID> stopparticles = new HashSet<>();
     private final HashSet<UUID> flymove = new HashSet<>();
     private List<World> disabledParticleWorlds = new ArrayList<>();
     private final BukkitScheduler scheduler;
+    public static ConcurrentHashMap<UUID, List<String>> playertags = new ConcurrentHashMap<>();
 
-    private final LipoHud lipo;
+    private ConcurrentHashMap<String, Integer> p2coins = new ConcurrentHashMap<>();
+    private ConcurrentHashMap<String, String> p2ranks = new ConcurrentHashMap<>();
+
+    private final LipoExtra lipo;
 
     private final List<UUID> delayPlayer = new ArrayList<>();
     private final List<UUID> delayPlayerCmd = new ArrayList<>();
@@ -57,19 +82,33 @@ public class Event implements Listener {
     private long delayPeriod;
     private String javatext;
     private String bedrocktext;
+    private String chargeoverlimitmsg;
+    private String procosmeticparticle;
     private Boolean java;
     private Boolean bedrock;
     private Boolean override;
     private Boolean commandInterrupt;
     private Boolean commandSound;
     private Boolean actionbarFilter;
+    private Boolean flightlimit;
+    private boolean fetchenabled;
     private List<String> expectedtext;
+    private List<String> blacklistbetaitems;
     private Particle flyParticle;
     private Double flyParticleSpeed;
     private Double flyParticleSpeedMove;
     private int flyParticleCount;
+    private long flyParticleTicks;
+    private int flyParticleRadius;
+    private int flightlimitint;
+    private boolean betaornot;
+    private TagConfig tagConfig;
+    private boolean flyCMI;
+    private String flyCMICommand;
 
-    public Event(Configurations config, LipoHud lipoHud) {
+    MiniMessage mm = MiniMessage.miniMessage();
+
+    public Event(Configurations config, LipoExtra lipoHud) {
 
         this.lipo = lipoHud;
         scheduler = lipo.getServer().getScheduler();
@@ -80,7 +119,6 @@ public class Event implements Listener {
 
         protocolmanager.addPacketListener(DetectActionBar());
         protocolmanager.addPacketListener(DetectActionBar1());
-//        protocolmanager.addPacketListener(ModifyPlayerOpenInventory());
 
     }
 
@@ -162,59 +200,13 @@ public class Event implements Listener {
         };
     }
 
-//    private PacketListener ModifyPlayerOpenInventory() {
-//        return new PacketAdapter(lipo, ListenerPriority.NORMAL, PacketType.Play.Server.OPEN_WINDOW) {
-//            @Override
-//            public void onPacketSending(PacketEvent event) {
-//                if (!override) {
-//                    return;
-//                }
-//
-//                WrappedChatComponent text = event.getPacket().getChatComponents().read(0);
-//                String json = text.getJson();
-//
-//                if (text.getJson().contains("\"translate\"")) {
-//                    return;
-//                }
-//
-//                if (playerClient.get(event.getPlayer().getUniqueId()).equalsIgnoreCase("bedrock")) {
-//
-//                    Pattern pattern = Pattern.compile("(<([^>-]+)-([^>]+)>)");
-//                    Matcher matcher = pattern.matcher(json);
-//
-//                    while (matcher.find()) {
-//
-//                        String integer = matcher.group(3);
-//
-//                        if (bedrockInvTitle.containsKey(integer)) {
-//                            String titletext = PlaceholderAPI.setPlaceholders(event.getPlayer(), bedrockInvTitle.get(integer).replace('&', '§'));
-//                            event.getPacket().getChatComponents().write(0, WrappedChatComponent.fromLegacyText(titletext));
-//                            break;
-//                        }
-//
-//                    }
-//
-//                    return;
-//                }
-//
-//                if (json.startsWith("\"") && json.endsWith("\"")) {
-//                    json = json.substring(1, json.length() - 1);
-//                }
-//
-//                String PlaceholderText = PlaceholderAPI.setPlaceholders(event.getPlayer(), json);
-//                BaseComponent newtext = formatJsonText(PlaceholderText);
-//                event.getPacket().getChatComponents().write(0, WrappedChatComponent.fromJson(ComponentSerializer.toString(newtext)));
-//
-//            }
-//        };
-//    }
-
     @EventHandler(priority = EventPriority.HIGHEST)
     private void onInventoryOpen(InventoryOpenEvent event) {
         if (!override) {
             return;
         }
-        var mm = MiniMessage.miniMessage();
+
+
         Inventory inv = event.getInventory();
 
         for (ItemStack item : inv.getContents()) {
@@ -222,57 +214,200 @@ public class Event implements Listener {
                 ItemMeta meta = item.getItemMeta();
                 if (meta != null) {
 
-                    NBT.modifyComponents(item, nbt -> {
-                        if (nbt.hasTag("minecraft:custom_name")) {
-                            String name = nbt.getString("minecraft:custom_name");
-                            nbt.setString("minecraft:custom_name", PlaceholderAPI.setPlaceholders((OfflinePlayer) event.getPlayer(), JSONComponentSerializer.json().serialize(mm.deserialize(name))));
+                    String name = meta.getDisplayName();
+                    if (!name.isEmpty()) {
+                        String parsedName = PlaceholderAPI.setPlaceholders((OfflinePlayer) event.getPlayer(), name);
+                        meta.displayName(mm.deserialize(convert(parsedName, true, '§', true)).decoration(TextDecoration.ITALIC, false));
+                    }
+
+                    List<String> lores = meta.getLore();
+                    if (lores != null && !lores.isEmpty()) {
+                        List<Component> newLore = new ArrayList<>();
+                        for (String line : lores) {
+                            String parsedLore = PlaceholderAPI.setPlaceholders((OfflinePlayer) event.getPlayer(), line);
+                            newLore.add(mm.deserialize(convert(parsedLore, true, '§', true)).decoration(TextDecoration.ITALIC, false));
                         }
-                        if (nbt.hasTag("minecraft:lore")) {
-                            ReadWriteNBTList<String> loreList = nbt.getStringList("minecraft:lore");
-                            int i = 0;
-                            for (String line : loreList) {
-                                String lore = PlaceholderAPI.setPlaceholders((OfflinePlayer) event.getPlayer(), JSONComponentSerializer.json().serialize(mm.deserialize(line)));
-                                loreList.set(i, lore);
-                                i++;
-                            }
-                        }
-                    });
+                        meta.lore(newLore);
+                    }
+
+                    item.setItemMeta(meta);
 
                 }
             }
         }
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST)
-    private void PlayerCommand(PlayerCommandPreprocessEvent e) {
-        if (!commandInterrupt) return;
-        String playercmd = e.getMessage();
-        for (String command : cIList.keySet()) {
-            String commandwspace = command.replace("_", " ");
-            if (playercmd.contains(commandwspace)) {
-                if (playercmd.substring(1, commandwspace.length() + 1).equalsIgnoreCase(commandwspace)) {
-                    String[] listcmd = playercmd.split(" ");
-                    String interruptcmd = cIList.get(command).keySet().iterator().next();
-                    for (String name : listcmd) {
-                        if (Bukkit.getPlayer(name) != null) {
-                            UUID player1 = Objects.requireNonNull(Bukkit.getPlayer(name)).getUniqueId();
-                            if (playerClient.get(player1).equalsIgnoreCase("bedrock") && !delayPlayerCmd.contains(player1)) {
-                                interruptcmd = interruptcmd.replace("%receiver-bedrock%", name);
-                                delayPlayerCmd.add(player1);
-                                new BukkitRunnable() {
-                                    @Override
-                                    public  void run() {
-                                        delayPlayer.remove(player1);
-                                    }
-                                }.runTaskLater(lipo, cIList.get(command).get(interruptcmd) * 20L);
-                            }
+//    @EventHandler(priority = EventPriority.HIGHEST)
+//    private void InventoryInteract(InventoryInteractEvent event) {
+//        if (!override) {
+//            return;
+//        }
+//
+//        Inventory inv = event.getInventory();
+//
+//        if (event.getWhoClicked() instanceof Player p) {
+//            for (ItemStack item : inv.getContents()) {
+//                if (item != null) {
+//                    ItemMeta meta = item.getItemMeta();
+//                    if (meta != null) {
+//
+//                        String name = meta.getDisplayName();
+//                        if (!name.isEmpty()) {
+//                            String parsedName = PlaceholderAPI.setPlaceholders((OfflinePlayer) p, name);
+//                            meta.displayName(mm.deserialize(convert(parsedName, true, '§', true)).decoration(TextDecoration.ITALIC, false));
+//                        }
+//
+//                        List<String> lores = meta.getLore();
+//                        if (lores != null && !lores.isEmpty()) {
+//                            List<Component> newLore = new ArrayList<>();
+//                            for (String line : lores) {
+//                                String parsedLore = PlaceholderAPI.setPlaceholders((OfflinePlayer) p, line);
+//                                newLore.add(mm.deserialize(convert(parsedLore, true, '§', true)).decoration(TextDecoration.ITALIC, false));
+//                            }
+//                            meta.lore(newLore);
+//                        }
+//
+//                        item.setItemMeta(meta);
+//
+//                    }
+//                }
+//            }
+//        }
+//    }
 
+    @EventHandler(priority = EventPriority.HIGHEST)
+    private void InventoryClick(InventoryClickEvent event) {
+        if (!override) {
+            return;
+        }
+
+        Inventory inv = event.getInventory();
+
+        if (event.getWhoClicked() instanceof Player p) {
+            for (ItemStack item : inv.getContents()) {
+                if (item != null) {
+                    ItemMeta meta = item.getItemMeta();
+                    if (meta != null) {
+
+                        String name = meta.getDisplayName();
+                        if (!name.isEmpty()) {
+                            String parsedName = PlaceholderAPI.setPlaceholders((OfflinePlayer) p, name);
+                            meta.displayName(mm.deserialize(convert(parsedName, true, '§', true)).decoration(TextDecoration.ITALIC, false));
                         }
+
+                        List<String> lores = meta.getLore();
+                        if (lores != null && !lores.isEmpty()) {
+                            List<Component> newLore = new ArrayList<>();
+                            for (String line : lores) {
+                                String parsedLore = PlaceholderAPI.setPlaceholders((OfflinePlayer) p, line);
+                                newLore.add(mm.deserialize(convert(parsedLore, true, '§', true)).decoration(TextDecoration.ITALIC, false));
+                            }
+                            meta.lore(newLore);
+                        }
+
+                        item.setItemMeta(meta);
+
                     }
-                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), interruptcmd);
                 }
             }
+        }
+    }
 
+    private String convert(String legacy, boolean concise, char charCode, boolean rgb) {
+        // Convert legacy color codes to MiniMessage format
+
+        if (rgb) {
+            Pattern pattern = Pattern.compile("§x(§[0-9a-fA-F]){6}");
+            Matcher matcher = pattern.matcher(legacy);
+            StringBuffer sb = new StringBuffer();
+
+            while (matcher.find()) {
+                // Extract RGB characters
+                String hexColor = matcher.group().replace("§x", "").replace("§", "");
+                matcher.appendReplacement(sb, "<#" + hexColor + ">");
+            }
+            matcher.appendTail(sb);
+            legacy = sb.toString();
+        }
+
+        String miniMessage = legacy
+                .replace(charCode + "0", "<black>")
+                .replace(charCode + "1", "<dark_blue>")
+                .replace(charCode + "2", "<dark_green>")
+                .replace(charCode + "3", "<dark_aqua>")
+                .replace(charCode + "4", "<dark_red>")
+                .replace(charCode + "5", "<dark_purple>")
+                .replace(charCode + "6", "<gold>")
+                .replace(charCode + "7", "<gray>")
+                .replace(charCode + "8", "<dark_gray>")
+                .replace(charCode + "9", "<blue>")
+                .replace(charCode + "a", "<green>")
+                .replace(charCode + "b", "<aqua>")
+                .replace(charCode + "c", "<red>")
+                .replace(charCode + "d", "<light_purple>")
+                .replace(charCode + "e", "<yellow>")
+                .replace(charCode + "f", "<white>");
+
+        // Convert formatting codes
+        if (concise) {
+            miniMessage = miniMessage
+                    .replace(charCode + "n", "<u>")
+                    .replace(charCode + "m", "<st>")
+                    .replace(charCode + "k", "<obf>")
+                    .replace(charCode + "o", "<i>")
+                    .replace(charCode + "l", "<b>")
+                    .replace(charCode + "r", "<reset>");
+        } else {
+            miniMessage = miniMessage
+                    .replace(charCode + "n", "<underlined>")
+                    .replace(charCode + "m", "<strikethrough>")
+                    .replace(charCode + "k", "<obfuscated>")
+                    .replace(charCode + "o", "<italic>")
+                    .replace(charCode + "l", "<bold>")
+                    .replace(charCode + "r", "<reset>");
+        }
+
+        // Convert RGB hex codes (e.g., & #ff00ff -> <#ff00ff>)
+
+        return miniMessage;
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    private void PlayerCommand(PlayerCommandPreprocessEvent e) {
+        if (!commandInterrupt) return;
+
+        String[] args = e.getMessage().substring(1).split(" ");
+        if (args.length < 2) return; // Must have at least command + target
+
+        String baseCommand = args[0] + " " + args[1];
+
+        for (String key : cIList.keySet()) {
+            String commandKey = key.replace("_", " "); // e.g. "cmi_tpa" -> "cmi tpa"
+            if (baseCommand.equalsIgnoreCase(commandKey)) {
+
+                String targetName = args[1];
+                Player target = Bukkit.getPlayer(targetName);
+
+                if (target != null) {
+                    UUID targetUUID = target.getUniqueId();
+
+                    if (playerClient.get(targetUUID).equalsIgnoreCase("bedrock") && !delayPlayerCmd.contains(targetUUID)) {
+                        String interruptCmd = cIList.get(key).getKey().replace("%receiver-bedrock%", target.getName());
+
+                        delayPlayerCmd.add(targetUUID);
+                        new BukkitRunnable() {
+                            @Override
+                            public void run() {
+                                delayPlayerCmd.remove(targetUUID);
+                            }
+                        }.runTaskLater(lipo, cIList.get(key).getValue() * 20L);
+
+                        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), interruptCmd);
+                        e.setCancelled(true); // Cancel the original command
+                        return;
+                    }
+                }
+            }
         }
     }
 
@@ -300,10 +435,8 @@ public class Event implements Listener {
 
         double deltaX = 0;
         double deltaZ = 0;
-        if (to != null) {
-            deltaX = Math.abs(from.getX() - to.getX());
-            deltaZ = Math.abs(from.getZ() - to.getZ());
-        }
+        deltaX = Math.abs(from.getX() - to.getX());
+        deltaZ = Math.abs(from.getZ() - to.getZ());
         double movementThreshold = 0.02; // Ignore tiny movements
 
         boolean isMoving = (deltaX > movementThreshold || deltaZ > movementThreshold);
@@ -316,46 +449,90 @@ public class Event implements Listener {
         }
     }
 
+    @EventHandler
+    private void PlayerEquipCosmetics(PlayerEquipCosmeticEvent e) {
+        if (e.getCosmeticType().getCategoryPath().contains(procosmeticparticle)) {
+            stopparticles.add(e.getPlayer().getUniqueId());
+        }
+    }
+
+    @EventHandler
+    private void PlayerUnequipCosmetics(PlayerUnequipCosmeticEvent e) {
+        if (e.getCosmeticType().getCategoryPath().contains(procosmeticparticle)) {
+            stopparticles.remove(e.getPlayer().getUniqueId());
+        }
+    }
+
     // CAN BE IMPROVISED
     @EventHandler
-    private void PlayerFly(PlayerToggleFlightEvent e) {
+    private void onPlayerToggleFlight(PlayerToggleFlightEvent e) {
         Player p = e.getPlayer();
         UUID playerId = p.getUniqueId();
+        CMIUser user = CMI.getInstance().getPlayerManager().getUser(p);
+
+        if (user != null && user.isVanished()) {
+            removeFlyParticles(playerId);
+            return;
+        }
 
         if (e.isFlying()) {
-            if (flyparticles.containsKey(playerId)) {
-                flyparticles.get(playerId).cancel();
-            }
+            removeFlyParticles(playerId);
 
             BukkitTask task = scheduler.runTaskTimer(lipo, () -> {
-                if (p.isFlying() && !disabledParticleWorlds.contains(p.getWorld())) {
-                    if (!stopparticles.contains(p.getUniqueId())) {
-                        if (!flymove.contains(p.getUniqueId())) {
-                            p.spawnParticle(flyParticle, p.getLocation(), flyParticleCount, 0D,0D,0D, flyParticleSpeed, null);
-                        } else {
-                            p.spawnParticle(flyParticle, p.getLocation(), flyParticleCount, 0D,0D,0D, flyParticleSpeedMove, null);
+                if (!p.isFlying() || disabledParticleWorlds.contains(p.getWorld()) || stopparticles.contains(playerId)) {
+                    removeFlyParticles(playerId);
+                    return;
+                }
+
+                String particleMode = (String) dataManager.getdata(p, "flyparticle", false);
+                if (particleMode != null) {
+                    boolean isMoving = flymove.contains(playerId);
+                    double speed = isMoving ? flyParticleSpeedMove : flyParticleSpeed;
+
+                    if (particleMode.equals("minimal") || particleMode.equals("all")) {
+                        p.spawnParticle(flyParticle, p.getLocation().add(0, -0.1, 0), flyParticleCount, 0, 0, 0, speed, null);
+                    }
+
+                    for (Player nearby : p.getLocation().getNearbyPlayers(flyParticleRadius)) {
+                        if (nearby.equals(p)) continue;
+                        String nearbyMode = (String) dataManager.getdata(nearby, "flyparticle", false);
+                        if ("all".equals(nearbyMode) || "others".equals(nearbyMode)) {
+                            if (!disabledParticleWorlds.contains(p.getWorld())) {
+                                if (user != null) {
+                                    if (!user.isVanished()) {
+                                        nearby.spawnParticle(flyParticle, p.getLocation().add(0, -0.1, 0), flyParticleCount, 0, 0, 0, speed, null);
+                                    }
+                                } else {
+                                    nearby.spawnParticle(flyParticle, p.getLocation().add(0, -0.1, 0), flyParticleCount, 0, 0, 0, speed, null);
+                                }
+                            }
                         }
                     }
-                } else {
-                    flyparticles.get(playerId).cancel();
-                    flyparticles.remove(playerId);
                 }
-            }, 0L, 5L);
+            }, 1L, flyParticleTicks);
 
             flyparticles.put(playerId, task);
         } else {
-            if (flyparticles.containsKey(playerId)) {
-                flyparticles.get(playerId).cancel();
-                flyparticles.remove(playerId);
-            }
+            removeFlyParticles(playerId);
+        }
+    }
+
+    // Helper method to remove particles
+    private void removeFlyParticles(UUID playerId) {
+        if (flyparticles.containsKey(playerId)) {
+            flyparticles.get(playerId).cancel();
+            flyparticles.remove(playerId);
         }
     }
 
     @EventHandler
     private void PlayerJoin(PlayerJoinEvent e) {
+
         Player player = e.getPlayer();
         FloodgateApi floodgate = FloodgateApi.getInstance();
         UUID uuid = player.getUniqueId();
+
+        List<String> ptags = new ArrayList<>(List.of());
 
         if (floodgate.isFloodgatePlayer(uuid)) {
             playerClient.put(uuid, "bedrock");
@@ -363,15 +540,132 @@ public class Event implements Listener {
             playerClient.put(uuid, "java");
         }
 
+        if (!player.hasPlayedBefore()) {
+            Currency currency = CoinsEngineAPI.getCurrency("stars");
+            if (currency != null) {
+                CoinsEngineAPI.addBalance(player, currency, getConvertedStars(player.getUniqueId()));
+            }
+
+            Bukkit.dispatchCommand(lipo.getServer().getConsoleSender(), "lp user " + player.getUniqueId() + " permission set lipo.tag.beta");
+            ptags.add("beta");
+        }
+
+        for (String tag : tagConfig.getTags()) {
+            if (player.hasPermission(tagConfig.getPerms(tag))) {
+                if (!ptags.contains(tag)) {
+                    ptags.add(tag);
+                }
+            }
+        }
+
+        playertags.put(player.getUniqueId(), ptags);
+
         if (!dataManager.hasData(player, "cmdSound")) {
             dataManager.setdata(player, "cmdSound", true);
         }
+
+        if (!dataManager.hasData(player, "flyparticle")) {
+            dataManager.setdata(player, "flyparticle", "all");
+        }
+
+        Currency currency = CoinsEngineAPI.getCurrency("coins");
+
+        if (currency != null && fetchenabled) {
+            scheduler.runTaskLater(lipo, () -> {
+                String name = player.getName();
+
+                if (!dataManager.hasData(player, "getcoins")) {
+                    if (p2coins.containsKey(name)) {
+
+                        int coins = p2coins.get(name);
+
+                        if (coins != 0) {
+
+                            if (coins <= 1000) {
+                                coins = 1;
+                            } else {
+                                coins /= 1000;
+                            }
+
+                            lipo.adventure().player(player).playSound(Sound.sound(Key.key("entity.experience_orb.pickup"), Sound.Source.PLAYER, 1F, 1F));
+                            dataManager.sendTitle(mm.deserialize(fetchtitle), mm.deserialize(fetchsubtitle), fetchduration.getFirst(), fetchduration.get(1), fetchduration.getLast(), player);
+                            dataManager.sendMessage(player, mm.deserialize(String.join("<br>", fetchcoinsmsg).replace("[coins]", String.valueOf(coins))));
+                            dataManager.setdata(player, "getcoins", true);
+                            CoinsEngineAPI.setBalance(player, currency, coins);
+                        }
+                    }
+                }
+
+                if (!dataManager.hasData(player, "getranks")) {
+                    scheduler.runTaskLater(lipo, () -> {
+                        String newrank = "default";
+
+                        if (p2ranks.containsKey(name)) {
+                            String prevrank = p2ranks.get(name);
+                            if (newrank.equals(p2ranks.get(name))) return;
+
+                            if (prevrank.equalsIgnoreCase("aetherian_survival")) {
+                                newrank = "dato";
+                            } else if (prevrank.equalsIgnoreCase("celestial_survival")) {
+                                newrank = "wira";
+                            } else if (prevrank.equalsIgnoreCase("luminary_survival") || prevrank.equalsIgnoreCase("nebulon_survival")) {
+                                newrank = "bandar";
+                            } else if (prevrank.equalsIgnoreCase("media_survival")) {
+                                newrank = "media";
+                            } else if (prevrank.equalsIgnoreCase("developer")) {
+                                newrank = "dev";
+                            } else if (prevrank.equalsIgnoreCase("helper")) {
+                                newrank = "helper";
+                            } else if (prevrank.equalsIgnoreCase("owner_survival")) {
+                                newrank = "owner";
+                            }
+
+                            lipo.adventure().player(player).playSound(Sound.sound(Key.key("entity.experience_orb.pickup"), Sound.Source.PLAYER, 0.5F, 1F));
+                            dataManager.sendMessage(player, mm.deserialize(String.join("<br>", fetchranksmsg).replace("[rank]", newrank)));
+
+                            dataManager.setdata(player, "getranks", true);
+                            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "lp user [player] parent add [rank]".replace("[player]", String.valueOf(player.getUniqueId())).replace("[rank]", newrank));
+                        }
+                    }, 20L * 5);
+                }
+
+
+            }, 20L * 7);
+        }
+
     }
 
     @EventHandler
     private void PlayerLeave(PlayerQuitEvent e) {
         UUID playerID = e.getPlayer().getUniqueId();
         playerClient.remove(playerID);
+        removeFlyParticles(playerID);
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST)
+    private void RechargeInv(InventoryClickEvent e) {
+        if (!flightlimit) return;
+        if (mm.serialize(e.getView().title()).contains("recharge")) {
+            if (e.getWhoClicked() instanceof Player p) {
+
+                if (e.isShiftClick() && e.isLeftClick()) {
+                    chargelimit.computeIfAbsent(p.getUniqueId(), k -> new AtomicInteger(0)).addAndGet(10);
+                } else if (e.isShiftClick() && e.isRightClick()) {
+                    chargelimit.computeIfAbsent(p.getUniqueId(), k -> new AtomicInteger(0)).addAndGet(1000);
+                } else if (e.isLeftClick()) {
+                    chargelimit.computeIfAbsent(p.getUniqueId(), k -> new AtomicInteger(0)).addAndGet(1);
+                } else if (e.isRightClick()) {
+                    chargelimit.computeIfAbsent(p.getUniqueId(), k -> new AtomicInteger(0)).addAndGet(100);
+                }
+
+                int currcharge = chargelimit.computeIfAbsent(p.getUniqueId(), k -> new AtomicInteger(0)).get();
+                if (currcharge >= flightlimitint) {
+                    lipo.adventure().player(p).sendMessage(mm.deserialize(chargeoverlimitmsg));
+                    e.setCancelled(true);
+                }
+
+            }
+        }
     }
 
     private void RunActionBar() {
@@ -390,14 +684,166 @@ public class Event implements Listener {
                     lipo.adventure().player(UUID).sendActionBar(parsed);
                  }
              });
-        }, 0, 40);
+        }, 0, 20);
         bukkitTasks.put("actionbar", task);
 
+    }
+
+    @EventHandler
+    private void BetaInv(InventoryClickEvent e) {
+        if (!e.getView().title().equals(mm.deserialize("<dark_gray>Beta Items"))) {
+            return;
+        }
+
+        Player p = (Player) e.getWhoClicked();
+        boolean isPlayerInventory = Objects.equals(e.getClickedInventory(), p.getInventory());
+
+        if (e.getSlot() != 4 && !isPlayerInventory) {
+            e.setCancelled(true);
+        }
+
+        if (e.isShiftClick()) {
+            e.setCancelled(true);
+            return;
+        }
+
+        if (e.getClick() == ClickType.NUMBER_KEY && !isPlayerInventory) {
+            e.setCancelled(true);
+            return;
+        }
+
+        if (e.getClick() == ClickType.SWAP_OFFHAND && !isPlayerInventory) {
+            e.setCancelled(true);
+            return;
+        }
+
+        ItemStack item = e.getCursor();
+
+        if (!betaornot) {
+            if (!isPlayerInventory) {
+                if (Objects.equals(e.getView().getTopInventory().getItem(4), ItemStack.of(Material.AIR))) {
+                    e.setCancelled(true);
+                    return;
+                } else if (!Objects.equals(e.getView().getTopInventory().getItem(4), ItemStack.of(Material.AIR)) && !Objects.equals(item, ItemStack.of(Material.AIR))) {
+                    e.setCancelled(true);
+                    return;
+                }
+            }
+        }
+
+        if (item.getAmount() > 1 && !item.isEmpty() && !isPlayerInventory) {
+            e.setCancelled(true);
+            return;
+        }
+
+        for (String blacklist : blacklistbetaitems) {
+            if (item.getType().name().contains(blacklist) && !isPlayerInventory) {
+                e.setCancelled(true);
+                return;
+            }
+        }
+
+        if (betaornot) {
+            Bukkit.getScheduler().runTaskLater(lipo, () -> {
+                ItemStack newItem = e.getView().getTopInventory().getItem(4); // Or re-check the GUI slot if custom inventory
+                BetaCommands.setBetaItemsCache(p.getUniqueId(), newItem);
+                saveBetaItem(p.getUniqueId(), newItem);
+            }, 1L);
+        } else {
+            BetaCommands.setBetaItemsCache(p.getUniqueId(), ItemStack.of(Material.AIR));
+            removeBetaFile(p.getUniqueId());
+        }
+
+    }
+
+    @EventHandler
+    private void onDrag(InventoryDragEvent e) {
+        if (!e.getView().title().equals(mm.deserialize("<dark_gray>Beta Items"))) return;
+
+        if (e.getRawSlots().contains(4)) {
+            e.setCancelled(true);
+        }
+    }
+
+    @EventHandler
+    private void PlayerStartPVE(CMIPvEStartEventAsync e) {
+        if (flyCMI) {
+            if (e.getPlayer().isFlying()) {
+                e.getPlayer().setMetadata("fly", new FixedMetadataValue(lipo, true));
+            }
+        }
+    }
+
+    @EventHandler
+    private void PlayerEndPVE(CMIPvEEndEventAsync e) {
+        if (flyCMI) {
+            if (e.getPlayer().hasMetadata("fly")) {
+                boolean fly = e.getPlayer().getMetadata("fly").getFirst().asBoolean();
+                if (fly) {
+                    Bukkit.dispatchCommand(e.getPlayer(), flyCMICommand);
+                    e.getPlayer().removeMetadata("fly", lipo);
+                }
+            }
+        }
+    }
+
+    public int getConvertedStars(UUID id) {
+        File folder = new File(lipo.getDataFolder(), "BetaItems");
+        if (!folder.exists()) folder.mkdirs();
+
+        File file = new File(folder, id.toString() + ".yml");
+
+        if (!file.exists()) return 0;
+
+        YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
+        return config.getInt("converted-stars");
+    }
+
+    public String getConvertedTag(UUID id) {
+        File folder = new File(lipo.getDataFolder(), "BetaItems");
+        if (!folder.exists()) folder.mkdirs();
+
+        File file = new File(folder, id.toString() + ".yml");
+
+        if (!file.exists()) return "";
+
+        YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
+        return config.getString("tag");
+    }
+
+    public void saveBetaItem(UUID uuid, ItemStack item) {
+        File folder = new File(lipo.getDataFolder(), "BetaItems");
+        if (!folder.exists()) folder.mkdirs();
+
+        File file = new File(folder, uuid.toString() + ".yml");
+
+        YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
+        config.set("itemstack", item);
+
+        try {
+            config.save(file);
+        } catch (IOException e) {
+            lipo.getLogger().warning("Failed to save beta item for " + uuid + "\n" + e.getMessage());
+        }
+    }
+
+    public void removeBetaFile(UUID id) {
+        File folder = new File(lipo.getDataFolder(), "BetaItems");
+        if (!folder.exists()) folder.mkdirs();
+
+        File file = new File(folder, id.toString() + ".yml");
+        file.delete();
     }
 
     public List<UUID> getDelayPlayer() {
         return delayPlayer;
     }
+
+    private List<String> fetchcoinsmsg = new ArrayList<>();
+    private List<String> fetchranksmsg = new ArrayList<>();
+    private List<Integer> fetchduration = new ArrayList<>();
+    private String fetchtitle;
+    private String fetchsubtitle;
 
     public void setConfig(Configurations config) {
 
@@ -424,7 +870,29 @@ public class Event implements Listener {
         flyParticleSpeed = config.FlyParticleSpeed();
         flyParticleSpeedMove = config.FlyParticleSpeedMove();
         flyParticleCount = config.FlyParticleCount();
+        flyParticleTicks = config.FlyParticleTicks();
+        fetchenabled = config.FetchEnabled();
         disabledParticleWorlds = config.DisableParticleWorlds();
+        flyParticleRadius = config.FlyPartileRadius();
+        flightlimit = config.RechargeLimit();
+        flightlimitint = config.RechargeLimitNum();
+        chargeoverlimitmsg = config.ChargeLimitMsg();
+        procosmeticparticle = config.ProcosmeticsParticle();
+
+        p2coins = config.playerCoins();
+        p2ranks = config.playerRanks();
+        fetchcoinsmsg = config.FetchCoinsMsg();
+        fetchranksmsg = config.FetchRanksMsg();
+        fetchduration = config.FetchDuration();
+        fetchtitle = config.FetchTitle();
+        fetchsubtitle = config.FetchSubtitle();
+
+        betaornot = config.BetaOrNotBeta();
+        blacklistbetaitems = config.BlacklistBetaItems();
+
+        tagConfig = lipo.getTagConfig();
+        flyCMI = config.FlyCMIEnabled();
+        flyCMICommand = config.FlyCMICommand();
 
         RunActionBar();
     }

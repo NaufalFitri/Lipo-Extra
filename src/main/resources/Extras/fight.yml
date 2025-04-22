@@ -4,6 +4,7 @@ lang:
   fight-message: "[prefix] <white>[challenger] is <#DC143C>challenging<white> you in an arena fight<click:run_command:fight accept><#DFFF00>Accept | <click:run_command:fight accept><red>Decline"
   fight-wait-challenger: "[prefix] <red>You need to wait for your opponent to accept your challenge!"
   fight-already-challenge: "[prefix] <red>They are currently in challenge"
+  fight-broadcast: "[prefix] <red>[challenger] is fighting [accepter] in arena [arena], <dark_gray>[<click:run_command:fight spectate [arena]><#DFFF00>Visit<dark_gray>]"
   already-in-fight: "[prefix] <red>You are currently in fight"
   # fight-duration is in actionbar
   fight-duration: "Fight ends in: <#DC143C>[time]"
@@ -18,6 +19,7 @@ lang:
   cant-spectate: "[prefix] <gray>You cannot spectate while in challenge"
   currently-spectate: "[prefix] <gray>You are current spectating <white>[challenger] <#DC143C>vs [accepter]"
   win-broadcast: "[prefix] <white>[challenger] vs [accepter] is winning by <#DC143C>[winner]!"
+  cant-teleport: "[prefix] <red>You cannot teleport into the arena unless you spectate"
 
 # radius is volume
 sound:
@@ -48,6 +50,9 @@ console-commands: []
 
 # Fight Duration in minutes
 fight-duration: 15
+
+# auto heal when enter arena
+auto-heal: true
 
 arenas:
   world: arenas

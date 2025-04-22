@@ -1,0 +1,32 @@
+prefix: "<dark_gray>[<#FE2C55><b>!</b><dark_gray>] <#FE2C55><b>Tiktok</b> <dark_gray>»<reset>"
+
+lang:
+  connected: "[prefix] Your live have connected to our server!"
+  error: "[prefix] <red>An error occurred when we are trying to connect with your live"
+  not-valid: "[prefix] Your host name is not valid [hostname]"
+  not-online: "[prefix] Your live is not online"
+  not-setup: "[prefix] Your live is not in the list!"
+  disconnect: "[prefix] <#25F4EE>[player]<white> have ended their live! Thank you alls"
+  broadcast: "[prefix] <#25F4EE>[player]<white> is now live, go visit their live stream! <dark_gray>[<hover:show_text:'Click to open [hostname] live!'><click:open_url:https://www.tiktok.com/@[hostname]/live><#25F4EE>Open Live</click></hover><dark_gray>]"
+
+creators:
+  294b3fc2-6f2b-4095-9817-38c2ffd6fc9d: brotegas
+
+sound:
+  broadcast:
+    sound: "block.beacon.activate"
+    source: "BLOCK"
+    pitch: 1.2
+    radius: 3
+  disconnect:
+    sound: "block.beacon.deactivate"
+    source: "BLOCK"
+    pitch: 1.2
+    radius: 3
+
+live-config:
+  gui:
+    title: "<dark_gray>Tiktok Config"
+    # border = true | fill = false
+    border-or-fill: true
+    bof-item: BLACK_STAINED_GLASS_PANE

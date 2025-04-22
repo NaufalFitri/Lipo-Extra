@@ -1,23 +1,22 @@
-package dev.lipoteam.lipoHud;
+package dev.lipoteam.lipoExtra;
 
-import dev.lipoteam.lipoHud.Files.Configurations;
+import dev.lipoteam.lipoExtra.Files.Configurations;
+import dev.lipoteam.lipoExtra.Manager.DataManager;
 import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.Plugin;
 import org.geysermc.cumulus.form.CustomForm;
 import org.geysermc.cumulus.form.SimpleForm;
 import org.geysermc.cumulus.util.FormImage;
 import org.geysermc.floodgate.api.FloodgateApi;
 
-import javax.xml.crypto.Data;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class BedrockForm {
 
-    private static LipoHud plugin = null;
+    private static LipoExtra plugin = null;
     private static Configurations configs;
     private static DataManager dataManager;
 
@@ -26,7 +25,7 @@ public class BedrockForm {
     private static final ConcurrentHashMap<String, Map<String, Map<String, Object>>> CformCache = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<String, Map<String, Object>> SformCache = new ConcurrentHashMap<>();
 
-    public BedrockForm(Configurations config, LipoHud plugin) {
+    public BedrockForm(Configurations config, LipoExtra plugin) {
 
         BedrockForm.plugin = plugin;
         setConfig(config);

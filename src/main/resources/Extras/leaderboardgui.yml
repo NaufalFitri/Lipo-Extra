@@ -1,0 +1,14 @@
+enabled: true
+
+guis:
+  money:
+    type: "cmi"
+    title: "Money Top [page]"
+    currency: "money"
+    # in minutes
+    command: "baltop"
+    item:
+      material: player_head
+      name: "<yellow>%player_name%"
+      lore:
+        - "money: [balance]"

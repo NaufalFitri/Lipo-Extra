@@ -1,0 +1,32 @@
+enabled: true
+
+prefix: "<dark_gray>[<#DC143C><bold>!</bold><#DC143C><dark_gray>] <bold>AntiXRay</bold> <dark_gray>»<reset>"
+
+# perm lipo.antixray.notify
+lang:
+  notify-admin: "[prefix] [player] <white> mined [ore] in [time] minutes!"
+
+detect-ores:
+  - "DIAMOND:15:5"
+  - "EMERALD:15:5"
+  - "ANCIENT_DEBRIS:15:5"
+  - "LAPIS_ORE:20:5"
+  - "QUARTZ_ORE:90:5"
+  - "REDSTONE_ORE:40:5"
+  - "GOLD_ORE:30:5"
+  - "IRON_ORE:90:5"
+
+discord:
+  guild: "LIPO MC"
+  enabled: false
+  channel: ''
+  messages:
+    type: embed
+    color: "#234fcf"
+    url: ''
+    messages:
+      title: [player]
+      img-url: http://cravatar.eu/avatar/[player]/64.png
+      words:
+      - Mined [amount]x [ore] under [time] minutes!
+      - "```/tp [player]```"

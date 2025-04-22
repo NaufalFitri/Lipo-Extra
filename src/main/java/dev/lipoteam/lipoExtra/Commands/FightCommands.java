@@ -1,14 +1,14 @@
-package dev.lipoteam.lipoHud.Commands;
+package dev.lipoteam.lipoExtra.Commands;
 
 import dev.jorel.commandapi.CommandAPICommand;
 import dev.jorel.commandapi.arguments.IntegerArgument;
 import dev.jorel.commandapi.arguments.PlayerArgument;
 import dev.jorel.commandapi.arguments.SafeSuggestions;
-import dev.lipoteam.lipoHud.DataManager;
-import dev.lipoteam.lipoHud.Events.Event;
-import dev.lipoteam.lipoHud.Events.Fight;
-import dev.lipoteam.lipoHud.Files.FightConfig;
-import dev.lipoteam.lipoHud.LipoHud;
+import dev.lipoteam.lipoExtra.Manager.DataManager;
+import dev.lipoteam.lipoExtra.Events.Event;
+import dev.lipoteam.lipoExtra.Events.Fight;
+import dev.lipoteam.lipoExtra.Files.FightConfig;
+import dev.lipoteam.lipoExtra.LipoExtra;
 import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.sound.Sound;
 import net.kyori.adventure.text.Component;
@@ -49,12 +49,14 @@ public class FightCommands {
     private String cantspectate;
     private String currentlyspectate;
     private String durationmsg;
+    private String broadcast;
+    private boolean autoheal;
 
     private DataManager dataManager;
 
     private Fight fightevent;
     private static Event event;
-    private final LipoHud plugin;
+    private final LipoExtra plugin;
 
     private List<ConcurrentHashMap<Location, Location>> arenas = new ArrayList<>();
     private List<Location> spectatearea = new ArrayList<>();
@@ -64,8 +66,9 @@ public class FightCommands {
     private final List<Player> waitPlayer = new ArrayList<>();
     private Team spectators;
 
-    public FightCommands(FightConfig configurations, LipoHud lipoHud) {
+    public FightCommands(FightConfig configurations, LipoExtra lipoHud) {
 
+        var mm = MiniMessage.miniMessage();
         plugin = lipoHud;
         dataManager = new DataManager(plugin);
         setConfig(configurations);
@@ -152,6 +155,7 @@ public class FightCommands {
                 .withSubcommand(new CommandAPICommand("accept")
                         .executes((sender, args) -> {
                             if (sender instanceof Player p ) {
+
                                 if (p.hasMetadata("challenging" ) && !p.hasMetadata("infight")) {
 
                                     Player p2 = (Player) p.getMetadata("challenging").getFirst().value();
@@ -167,34 +171,30 @@ public class FightCommands {
                                     ConcurrentHashMap<Location, Location> loc = new ConcurrentHashMap<>();
                                     int arena = ran.nextInt(0, arenas.size());
                                     if (arenainuse.containsKey(arena)) {
-                                        boolean fail = false;
+                                        boolean found = false;
                                         for (int i = 0; i < arenas.size(); i++) {
-                                            if (arenainuse.containsKey(i)) {
-                                                fail = true;
-                                            } else {
-                                                fail = false;
+                                            if (!arenainuse.containsKey(i)) {
                                                 arenainuse.put(i, p);
                                                 loc = arenas.get(i);
+                                                arena = i;
+                                                found = true;
                                                 break;
                                             }
+                                        }
 
-                                        }
-                                        if (fail) {
-                                            dataManager.sendMessage(ReformatText(arenafull, p.getName(), p2.getName()), a, a2);
-                                            if (!p.hasMetadata("infight")) {
-                                                p.removeMetadata("accepting", plugin);
+                                            if (!found) {
+                                                dataManager.sendMessage(ReformatText(arenafull, p.getName(), p2.getName()), a, a2);
+                                                if (!p.hasMetadata("infight")) p.removeMetadata("accepting", plugin);
+                                                if (!p2.hasMetadata("infight")) p2.removeMetadata("challenging", plugin);
                                             }
-                                            if (!p2.hasMetadata("infight")) {
-                                                p2.removeMetadata("challenging", plugin);
-                                            }
-                                            return;
-                                        }
-                                    } else {
-                                        arenainuse.put(arena, p);
+
+                                        } else {
+                                        arenainuse.putIfAbsent(arena, p);
                                         loc = arenas.get(arena);
                                     }
 
                                     p.setMetadata("arena", new FixedMetadataValue(plugin, arena));
+                                    lipoHud.adventure().players().sendMessage(mm.deserialize(broadcast.replace("[challenger]", p.getName()).replace("[accepter]", p2.getName()).replace("[arena]", String.valueOf(arena)).replace("[prefix]", prefix)));
 
                                     Component msg = ReformatText(acceptmsg, p.getName(), p2.getName());
 
@@ -202,14 +202,31 @@ public class FightCommands {
                                     a2.playSound(fightacceptsound);
                                     dataManager.sendMessage(msg, a, a2);
 
-                                    p.setMetadata("infight", new FixedMetadataValue(plugin, p.getLocation()));
-                                    p2.setMetadata("infight", new FixedMetadataValue(plugin, p2.getLocation()));
-
                                     Location floc = loc.keySet().stream().toList().getFirst();
                                     Location sloc = loc.get(floc);
 
+                                    Location lastloc1 = p.getLocation();
+                                    Location lastloc2 = p2.getLocation();
+
                                     p.teleport(sloc);
                                     p2.teleport(floc);
+
+                                    p.setMetadata("infight", new FixedMetadataValue(plugin, lastloc1));
+                                    p2.setMetadata("infight", new FixedMetadataValue(plugin, lastloc2));
+
+                                    p.setMetadata("lasthealth", new FixedMetadataValue(plugin, p.getHealth()));
+                                    p2.setMetadata("lasthealth", new FixedMetadataValue(plugin, p2.getHealth()));
+                                    p.setMetadata("lasthunger", new FixedMetadataValue(plugin, p.getFoodLevel()));
+                                    p2.setMetadata("lasthunger", new FixedMetadataValue(plugin, p.getFoodLevel()));
+
+                                    if (autoheal) {
+                                        p.setHealth(20);
+                                        p2.setHealth(20);
+                                        p.setFoodLevel(20);
+                                        p2.setFoodLevel(20);
+                                        p.setSaturation(10);
+                                        p2.setSaturation(10);
+                                    }
 
                                     for (String cmds : consolecmds) {
                                         ConsoleCommandSender console = plugin.getServer().getConsoleSender();
@@ -222,17 +239,18 @@ public class FightCommands {
                                     AtomicInteger minutes = new AtomicInteger(fightduration);
                                     AtomicInteger seconds = new AtomicInteger();
 
+                                    int finalArena = arena;
                                     scheduler.runTaskTimerAsynchronously(plugin, (task) -> {
 
                                         if (minutes.get() == fightduration) {
                                             duration.put(p, task);
                                         }
 
-                                        Component time = ReformatText(durationmsg, p.getName(), p2.getName(), minutes + ":" + seconds);
+                                        Component time = ReformatText(durationmsg, p.getName(), p2.getName(), String.format("%02d:%02d", minutes.get(), seconds.get()));
                                         dataManager.sendActionbar(time, p, p2);
                                         Bukkit.getOnlinePlayers().forEach(player -> {
                                             if (player.hasMetadata("spectating")) {
-                                                if (player.getMetadata("spectating").getFirst().asInt() == arena) {
+                                                if (player.getMetadata("spectating").getFirst().asInt() == finalArena) {
                                                     dataManager.sendActionbar(time, player);
                                                 }
                                             }
@@ -244,7 +262,7 @@ public class FightCommands {
                                                 scheduler.runTask(plugin, () -> {
                                                     Bukkit.getOnlinePlayers().forEach(player -> {
                                                         if (player.hasMetadata("spectating")) {
-                                                            if (player.getMetadata("spectating").getFirst().asInt() == arena) {
+                                                            if (player.getMetadata("spectating").getFirst().asInt() == finalArena) {
                                                                 Location lastloc = (Location) player.getMetadata("lastloc").getFirst().value();
                                                                 if (lastloc != null) player.teleport(lastloc);
 
@@ -274,7 +292,7 @@ public class FightCommands {
                                 if (p.hasMetadata("infight")) {
 
                                     Location lastloc = (Location) p.getMetadata("infight").getFirst().value();
-                                    if (lastloc != null) p.teleport(lastloc);
+                                    p.removeMetadata("infight", lipoHud);
 
                                     if (p.hasMetadata("challenging")) {
                                         Player c = (Player) p.getMetadata("challenging").getFirst().value();
@@ -284,7 +302,6 @@ public class FightCommands {
                                             dataManager.sendMessage(p, ReformatText(leavemsg, p.getName(), c.getName()));
                                             fightevent.WinLoseChallenge(p, c);
                                         }
-
 
                                     } else if (p.hasMetadata("accepting")) {
 
@@ -298,6 +315,8 @@ public class FightCommands {
 
                                     }
 
+                                    if (lastloc != null) p.teleport(lastloc);
+
                                 }
                             }
                         })
@@ -308,44 +327,48 @@ public class FightCommands {
                         )))
                         .executes((sender, args) -> {
                             if (sender instanceof Player p) {
-                                int arena = 0;
+                                int arena = -1;
                                 try {
                                     arena = (int) args.get("arena");
                                 } catch (NullPointerException e) {
                                     // Nothing
                                 }
 
+                                if (arena == -1) return;
+
                                 Audience a = plugin.adventure().player(p);
                                 if (p.hasMetadata("challenging") || p.hasMetadata("accepting") || p.hasMetadata("infight") || p.hasMetadata("spectating")) {
                                     dataManager.sendMessage(a, ReformatText(cantspectate));
                                 } else {
 
-                                    if (arenainuse.get(arena) != null) {
+                                    if (arenainuse.containsKey(arena)) {
                                         Player ac = arenainuse.get(arena);
-                                        Player c = (Player) ac.getMetadata("accepting").getFirst().value();
 
-                                        if (c != null) {
-                                            dataManager.sendMessage(a, ReformatText(currentlyspectate, c.getName(), ac.getName()));
-                                            c.hidePlayer(plugin, p);
-                                            ac.hidePlayer(plugin, p);
+                                        if (ac != null && ac.hasMetadata("accepting") && !ac.getMetadata("accepting").isEmpty()) {
+                                            Player c = (Player) ac.getMetadata("accepting").getFirst().value();
+
+                                            if (c != null) {
+                                                dataManager.sendMessage(a, ReformatText(currentlyspectate, c.getName(), ac.getName()));
+                                                c.hidePlayer(plugin, p);
+                                                ac.hidePlayer(plugin, p);
+                                            }
+
+                                            event.getDelayPlayer().add(p.getUniqueId());
+
+                                            p.setMetadata("spectating", new FixedMetadataValue(plugin, arena));
+                                            p.setMetadata("lastloc", new FixedMetadataValue(plugin, p.getLocation()));
+                                            p.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, Integer.MAX_VALUE, 0, false, false));
+                                            a.playSound(teleportspectate);
+
+                                            spectators.addPlayer(p);
+                                            spectators.setCanSeeFriendlyInvisibles(true);
+                                            spectators.setAllowFriendlyFire(false);
+
+                                            Location loc = spectatearea.get(arena);
+                                            p.teleport(loc);
+                                        } else if (ac == null) {
+                                            arenainuse.remove(arena);
                                         }
-
-                                        event.getDelayPlayer().add(p.getUniqueId());
-
-                                        p.setMetadata("spectating", new FixedMetadataValue(plugin, arena));
-
-                                        p.setMetadata("lastloc", new FixedMetadataValue(plugin, p.getLocation()));
-                                        p.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, Integer.MAX_VALUE, 0, false, false));
-                                        a.playSound(teleportspectate);
-
-                                        spectators.addPlayer(p);
-                                        spectators.setCanSeeFriendlyInvisibles(true);
-                                        spectators.setAllowFriendlyFire(false);
-
-                                        Location loc = spectatearea.get(arena);
-                                        p.teleport(loc);
-
-
                                     }
 
                                 }
@@ -411,6 +434,8 @@ public class FightCommands {
         fightduration = config.FightDuration();
         durationmsg = config.DurationMessage();
         spectators = config.getSpectatorsTeam();
+        autoheal = config.isAutoHeal();
+        broadcast = config.FightBroadcast();
     }
 
 }

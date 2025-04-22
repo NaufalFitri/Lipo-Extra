@@ -1,4 +1,4 @@
-package dev.lipoteam.lipoHud.Discord;
+package dev.lipoteam.lipoExtra.Discord;
 
 public class CachedCommands {
 

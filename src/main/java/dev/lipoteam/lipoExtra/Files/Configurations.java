@@ -1,12 +1,10 @@
-package dev.lipoteam.lipoHud.Files;
+package dev.lipoteam.lipoExtra.Files;
 
-import dev.lipoteam.lipoHud.DataManager;
-import dev.lipoteam.lipoHud.LipoHud;
+import dev.lipoteam.lipoExtra.Manager.DataManager;
+import dev.lipoteam.lipoExtra.LipoExtra;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.sound.Sound;
-import org.bukkit.NamespacedKey;
 import org.bukkit.Particle;
-import org.bukkit.Registry;
 import org.bukkit.World;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.Plugin;
@@ -18,12 +16,20 @@ import java.util.concurrent.ConcurrentHashMap;
 public class Configurations {
 
     private final FileConfiguration config;
+
+    private FileConfiguration coinsconfig;
+    private FileConfiguration ranksconfig;
+
     private final Plugin plugin;
     private final DataManager manager;
 
-    public Configurations(FileConfiguration config, LipoHud plugin) {
+    public Configurations(FileConfiguration config, LipoExtra plugin) {
         this.config = config;
         this.plugin = plugin;
+
+        this.coinsconfig = plugin.CoinsConfig();
+        this.ranksconfig = plugin.RanksConfig();
+
         manager = new DataManager(plugin);
     }
 
@@ -115,20 +121,22 @@ public class Configurations {
 
     public Boolean CommandInterrupt() { return config.getBoolean("command.interrupt.enabled");}
 
-    public ConcurrentHashMap<String, HashMap<String, Integer>> CommandInterruptList() {
-        ConcurrentHashMap<String, HashMap<String, Integer>> MapList = new ConcurrentHashMap<>();
+    public ConcurrentHashMap<String, Map.Entry<String, Integer>> CommandInterruptList() {
+        ConcurrentHashMap<String, Map.Entry<String, Integer>> mapList = new ConcurrentHashMap<>();
+
         for (String command : config.getConfigurationSection("command.interrupt").getKeys(false)) {
             if (command.equalsIgnoreCase("enabled")) {
                 continue;
             }
-            HashMap<String, Integer> newCommand = new HashMap<>();
-            newCommand.put(config.getString("command.interrupt." + command + ".command"), config.getInt("command.interrupt." + command + ".delay"));
-            if (newCommand != null) {
-                MapList.put(command, newCommand);
-            }
 
+            String commandName = config.getString("command.interrupt." + command + ".command");
+            int delay = config.getInt("command.interrupt." + command + ".delay");
+
+            if (commandName != null) {
+                mapList.put(command, new AbstractMap.SimpleEntry<>(commandName, delay));
+            }
         }
-        return MapList;
+        return mapList;
     }
 
     public Sound commandSound() {
@@ -164,5 +172,121 @@ public class Configurations {
         return worlds;
     }
 
+    public long FlyParticleTicks() { return config.getLong("particle.on-fly.ticks"); }
+
+    public int FlyPartileRadius() { return config.getInt("particle.on-fly.radius"); }
+
+    public boolean FlyCMIEnabled() { return config.getBoolean("cmi-addon.pve-end.enabled"); }
+
+    public String FlyCMICommand() { return config.getString("cmi-addon.pve-end.command"); }
+
+    public boolean RechargeLimit() { return config.getBoolean("cmi-addon.recharge-limit.enabled"); }
+
+    public int RechargeLimitNum() { return config.getInt("cmi-addon.recharge-limit.limit"); }
+
+    public String ChargeLimitMsg() { return config.getString("cmi-addon.recharge-limit.msg"); }
+
+    public boolean ProcosmeticsHook() { return config.getBoolean("procosmetics.hook.enabled"); }
+
+    public String ProcosmeticsCurrency() { return config.getString("procosmetics.hook.currency"); }
+
+    public String ProcosmeticsParticle() { return config.getString("procosmetics.particle"); }
+
+    public String ProgressBar() { return config.getString("placeholderapi.progress"); }
+
+    public int ProgressLength() { return config.getInt("placeholderapi.bar-length"); }
+
+    public String ProgressChar() { return config.getString("placeholderapi.bar-char"); }
+
+    public boolean NoteBlockAPIHook() { return config.getBoolean("NoteBlockAPI.enabled"); }
+
+    public String ModeChangeMsg() { return config.getString("lang.particle-mode-change"); }
+
+    public ConcurrentHashMap<String, Integer> playerCoins() {
+        ConcurrentHashMap<String, Integer> pc = new ConcurrentHashMap<>();
+
+        if (coinsconfig.getConfigurationSection("players") == null) {
+            return pc;
+        }
+
+        for (String name : coinsconfig.getConfigurationSection("players").getKeys(false)) {
+            String convertname = name;
+
+            if (name.startsWith("_") && !name.startsWith("__")) {
+                convertname = name.replaceFirst("_", ".");
+            }
+
+            pc.put(convertname, coinsconfig.getInt("players." + name));
+        }
+
+        return pc;
+    }
+
+    public ConcurrentHashMap<String, String> playerRanks() {
+        ConcurrentHashMap<String, String> pr = new ConcurrentHashMap<>();
+
+        if (ranksconfig.getConfigurationSection("players") == null) {
+            return pr;
+        }
+
+        for (String name : ranksconfig.getConfigurationSection("players").getKeys(false)) {
+            String convertname = name;
+
+            if (name.startsWith("_") && !name.startsWith("__")) {
+                convertname = name.replaceFirst("_", ".");
+            }
+
+            String rank = ranksconfig.getString("players." + name);
+            if (rank != null) {
+                pr.put(convertname, rank);
+            }
+        }
+
+        return pr;
+    }
+
+    public String FetchTitle() {
+        return config.getString("fetch.title");
+    }
+
+    public String FetchSubtitle() {
+        return config.getString("fetch.subtitle");
+    }
+
+    public List<Integer> FetchDuration() {
+        List<Integer> duration = new ArrayList<>();
+        duration.add(config.getInt("fetch.fade-in"));
+        duration.add(config.getInt("fetch.stay"));
+        duration.add(config.getInt("fetch.fade-out"));
+        return duration;
+    }
+
+    public List<String> FetchCoinsMsg() {
+        return config.getStringList("fetch.coins.messages");
+    }
+
+    public List<String> FetchRanksMsg() {
+        return config.getStringList("fetch.ranks.messages");
+    }
+
+    public boolean FetchEnabled() {
+        return config.getBoolean("fetch.enabled");
+    }
+
+//    beta-items:
+//    enabled: true
+//            # true = beta, false = notbeta
+//    beta-or-notbeta: true
+//    blacklist-items:
+//            - SHULKER_BOX
+//            - BUNDLE
+
+    public boolean BetaItemsEnabled() { return config.getBoolean("beta-items.enabled");}
+
+    public boolean BetaOrNotBeta() { return config.getBoolean("beta-items.beta-or-notbeta"); }
+
+    public List<String> BlacklistBetaItems() { return config.getStringList("beta-items.blacklist-items"); }
+
+    public int StarsScaleFactor() { return config.getInt("beta-items.stars-scale-factor"); }
 
 }

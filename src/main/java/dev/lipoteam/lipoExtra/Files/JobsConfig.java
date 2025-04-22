@@ -1,9 +1,8 @@
-package dev.lipoteam.lipoHud.Files;
+package dev.lipoteam.lipoExtra.Files;
 
 import com.gamingmesh.jobs.Jobs;
 import com.gamingmesh.jobs.container.Job;
-import com.google.common.util.concurrent.AtomicDouble;
-import dev.lipoteam.lipoHud.LipoHud;
+import dev.lipoteam.lipoExtra.LipoExtra;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.FileConfiguration;
 
@@ -15,12 +14,12 @@ import java.util.concurrent.ConcurrentHashMap;
 public class JobsConfig {
 
     private final Double default_limit = 1000.0;
-    private LipoHud plugin;
+    private LipoExtra plugin;
     private final FileConfiguration config;
 
     private static final ConcurrentHashMap<Job, Double> earningslimit = new ConcurrentHashMap<>();
 
-    public JobsConfig(FileConfiguration config, LipoHud plugin) {
+    public JobsConfig(FileConfiguration config, LipoExtra plugin) {
         this.plugin = plugin;
         this.config = config;
 
