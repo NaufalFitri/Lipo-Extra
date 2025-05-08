@@ -9,6 +9,7 @@ import dev.lipoteam.lipoExtra.Manager.DataManager;
 import dev.lipoteam.lipoExtra.Manager.MobData;
 import net.coreprotect.CoreProtect;
 import net.coreprotect.CoreProtectAPI;
+import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.*;
 import org.bukkit.attribute.Attribute;
@@ -21,14 +22,15 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.LlamaInventory;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.potion.PotionEffect;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.Random;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 public class Mobcatcher implements Listener {
 
@@ -41,8 +43,9 @@ public class Mobcatcher implements Listener {
     private String catched;
     private String failed;
     private String claimmsg;
+    private List<String> moblore;
     private double chances;
-    private MiniMessage mm;
+    private final MiniMessage mm;
     private int reset;
     private final CoreProtectAPI coreapi;
     private final Core gdapi;
@@ -68,6 +71,7 @@ public class Mobcatcher implements Listener {
         chances = config.chances();
         reset = config.resetuncatch();
         claimmsg = config.claim();
+        moblore = config.itemlore();
     }
 
     @EventHandler
@@ -163,6 +167,7 @@ public class Mobcatcher implements Listener {
                             Llama.Color lcolor = null;
                             ItemStack carpet = null;
                             boolean chest = false;
+                            int invsize = 0;
                             ItemStack[] contents = null;
                             if (l instanceof Llama ll) {
                                 lcolor = ll.getColor();
@@ -170,6 +175,7 @@ public class Mobcatcher implements Listener {
                                 carpet = ll.getInventory().getDecor();
                                 chest = ll.isCarryingChest();
                                 contents = ll.getInventory().getStorageContents();
+                                invsize = ll.getInventory().getSize();
                             }
                             String variant = null;
                             if (l instanceof Wolf w) {
@@ -201,11 +207,15 @@ public class Mobcatcher implements Listener {
                             dataManager.setdata(item, "mob", new MobData(l.getType(), l.getCustomName(), l.getHealth(), helmet, chestplate
                                     , leggings, boots, mainhand, offhand, l.getActivePotionEffects(),
                                     baby, l.isGlowing(), l.isInvisible(), l.hasAI(), l.isInvulnerable(), l.isSilent(), color, cattype, rabbittype, horsecolor,
-                                    horsestyle, lcolor, carpet,contents,chest, variant,owner, fvariant, size, saddled));
+                                    horsestyle, lcolor, carpet,contents,chest,invsize, variant,owner, fvariant, size, saddled));
                             l.remove();
                             ItemMeta meta = item.getItemMeta();
                             if (meta != null) {
                                 meta.setEnchantmentGlintOverride(true);
+                                List<Component> lore = moblore.stream()
+                                        .map(lo -> mm.deserialize(lo.replace("[mob]", en.getType().name())))
+                                        .collect(Collectors.toList());
+                                meta.lore(lore);
                                 item.setItemMeta(meta);
                             }
                             p.sendMessage(mm.deserialize(catched.replace("[prefix]", prefix).replace("[mob]", en.getType().name())));
@@ -257,11 +267,19 @@ public class Mobcatcher implements Listener {
                 }
             }
 
-            MobData mob = (MobData) dataManager.getdata(item, "mob", true);
+            MobData mob;
+            try {
+                mob = (MobData) dataManager.getdata(item, "mob", true);
+            } catch (Exception ex) {
+                p.sendMessage(mm.deserialize(prefix + " Your mobcatcher is outdated, please contact administrator to replace your item"));
+                p.getInventory().removeItem(item);
+                return;
+            }
+
             loc.setYaw(random.nextFloat(-180, 180));
             if (mob.type().getEntityClass() != null) {
                 Entity spawn = e.getClickedBlock().getWorld().spawn(loc, mob.type().getEntityClass());
-
+                
                 if (mob.owner() != null) {
                     if (spawn instanceof Tameable t) {
                         if (p.getUniqueId().equals(mob.owner())) {
@@ -307,13 +325,20 @@ public class Mobcatcher implements Listener {
                     if (mob.llamacolor() != null) {
                         llama.setColor(mob.llamacolor());
                     }
+
+                    if (mob.havechest()) {
+                        llama.setCarryingChest(true);
+
+                        int expectedSlots = mob.llamastorage().length;
+                        int requiredStrength = expectedSlots / 3;
+                        llama.setStrength(requiredStrength);
+                    }
+
                     if (mob.llamadecor() != null) {
                         llama.getInventory().setDecor(mob.llamadecor());
                     }
+
                     if (mob.llamastorage() != null) {
-                        if (mob.havechest()) {
-                            llama.setCarryingChest(true);
-                        }
                         llama.getInventory().setContents(mob.llamastorage());
                     }
                 }
@@ -374,6 +399,10 @@ public class Mobcatcher implements Listener {
             ItemMeta meta = item.getItemMeta();
             if (meta != null) {
                 meta.setEnchantmentGlintOverride(false);
+                List<Component> lore = moblore.stream()
+                        .map(lo -> mm.deserialize(lo.replace("[mob]", "")))
+                        .collect(Collectors.toList());
+                meta.lore(lore);
                 item.setItemMeta(meta);
             }
             dataManager.unsetdata(item, "mob");
