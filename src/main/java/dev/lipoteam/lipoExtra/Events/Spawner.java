@@ -32,21 +32,22 @@ import java.util.concurrent.atomic.AtomicReference;
 public class Spawner implements Listener {
 
     private SpawnerConfig config;
-    private LipoExtra plugin;
-    private DataManager dataManager;
-    private BukkitScheduler scheduler;
+    private final LipoExtra plugin;
+    private final DataManager dataManager;
+    private final BukkitScheduler scheduler;
 
     private int initialseconds;
     private int secperstack;
     private int maxstacking;
+    private int maxspawn;
     private List<String> worlds;
     private String spawnerName;
     private String spawnerTime;
     private String prefix;
     private boolean enabled;
-    private Random random;
+    private final Random random;
 
-    private final Map<Location, BukkitTask> activeTasks = new HashMap<>();
+    public final Map<Location, BukkitTask> activeTasks = new HashMap<>();
 
     private String maxmsg;
     MiniMessage mm;
@@ -73,11 +74,12 @@ public class Spawner implements Listener {
         secperstack = config.secStacking();
         maxstacking = config.maxStacking();
         maxmsg = config.MaxMsg();
+        maxspawn = config.multiplerMaxSpawn();
     }
 
     @EventHandler
     public void onSpawnerBreak(BlockBreakEvent e) {
-        if (enabled || e.getPlayer().hasPermission("lipo.spawner.break")) {
+        if (enabled && e.getPlayer().hasPermission("lipo.spawner.break")) {
             Block block = e.getBlock();
             Player p = e.getPlayer();
             if (block.getType() != Material.SPAWNER) return;
@@ -169,10 +171,17 @@ public class Spawner implements Listener {
                     if (!found) {
                         if (stack > 1) {
                             if (dataManager.hasData(itemstack, "stack")) {
-                                dataManager.setdata(itemstack, "stack", stack - 1);
-                                ItemMeta newmeta = itemstack.getItemMeta();
-                                newmeta.displayName(mm.deserialize("<!i>" + spawner.getSpawnedType() + " Spawner <dark_gray>(" + (stack - 1) + ")"));
-                                itemstack.setItemMeta(newmeta);
+                                if (stack > 2) {
+                                    dataManager.setdata(itemstack, "stack", stack - 1);
+                                    ItemMeta newmeta = itemstack.getItemMeta();
+                                    newmeta.displayName(mm.deserialize("<!i>" + spawner.getSpawnedType() + " Spawner <dark_gray>(" + (stack - 1) + ")"));
+                                    itemstack.setItemMeta(newmeta);
+                                } else {
+                                    ItemMeta newmeta = itemstack.getItemMeta();
+                                    newmeta.displayName(mm.deserialize("<!i>Monster Spawner"));
+                                    itemstack.setItemMeta(newmeta);
+                                    dataManager.unsetdata(itemstack, "stack");
+                                }
                             } else {
                                 return;
                             }
@@ -188,8 +197,10 @@ public class Spawner implements Listener {
     }
 
     public void removeSpawner(Block block) {
-        if (activeTasks.containsKey(block.getLocation())) {
-            activeTasks.get(block.getLocation()).cancel();
+        Location loc = block.getLocation();
+        if (activeTasks.containsKey(loc)) {
+            activeTasks.get(loc).cancel();
+            activeTasks.remove(loc);
         }
 
         if (dataManager.hasData(block, "display0") && dataManager.hasData(block, "display1")) {
@@ -227,11 +238,13 @@ public class Spawner implements Listener {
     }
 
     @EventHandler
-    public void SpawnerOn(PlayerInteractEvent e) {
-        if (enabled || e.getPlayer().hasPermission("lipo.spawner.enable")) {
+    public void SpawnerOnOff(PlayerInteractEvent e) {
+        if (enabled && e.getPlayer().hasPermission("lipo.spawner.toggle")) {
             Block block = e.getClickedBlock();
 
             if (block == null) return;
+
+            if (!e.getAction().isRightClick()) return;
 
             BlockData blockData = block.getBlockData();
             if (blockData instanceof Powerable po) {
@@ -239,20 +252,42 @@ public class Spawner implements Listener {
                 if (!po.isPowered()) {
                     for (BlockFace face : directions) {
                         Block nearby = block.getRelative(face);
-                        if (nearby.getType() == Material.SPAWNER && !activeTasks.containsKey(nearby.getLocation())) {
+                        if (nearby.getType() == Material.SPAWNER) {
 
-                            BlockState state = nearby.getState();
-                            if (!(state instanceof CreatureSpawner spawner)) continue;
+                            if (!activeTasks.containsKey(nearby.getLocation())) {
+                                BlockState state = nearby.getState();
+                                if (!(state instanceof CreatureSpawner spawner)) continue;
 
-                            if (dataManager.hasData(nearby, "stack")) {
-                                int stack = (int) dataManager.getdata(nearby, "stack", false);
-                                StackingSystem(nearby, stack, spawner);
+                                if (dataManager.hasData(nearby, "stack")) {
+                                    int stack = (int) dataManager.getdata(nearby, "stack", false);
+                                    StackingSystem(nearby, stack, spawner);
+                                }
+                            } else {
+                                activeTasks.get(nearby.getLocation()).cancel();
+                                activeTasks.remove(nearby.getLocation());
+                                deactivateSpawner(nearby);
                             }
+
                         }
                     }
                 }
             }
         }
+    }
+
+    public void deactivateSpawner(Block block) {
+
+        try {
+            UUID displayUUID = UUID.fromString((String) dataManager.getdata(block, "display0", false));
+            Entity entity = block.getWorld().getEntity(displayUUID);
+            if (entity instanceof TextDisplay display) {
+                Component text = display.text();
+                display.text(MiniMessage.miniMessage().deserialize("<red>").append(text));
+            }
+        } catch (Exception ex) {
+            plugin.getLogger().warning("Failed to modify TextDisplay at " + block.getLocation() + ": " + ex.getMessage());
+        }
+
     }
 
     @EventHandler
@@ -297,13 +332,14 @@ public class Spawner implements Listener {
 
             if (spawner.getSpawnedType() != handSpawnerType) return;
 
+            e.setCancelled(true);
+
             if (dataManager.hasData(item, "stack")) {
                 int stackitem = (int) dataManager.getdata(item, "stack", false);
                 if (dataManager.hasData(againstBlock, "stack")) {
                     int stack = (int) dataManager.getdata(againstBlock, "stack", false);
                     if (stack + stackitem > maxstacking) {
                         plugin.adventure().player(p).sendMessage(mm.deserialize(maxmsg.replace("[prefix]", prefix)));
-                        e.setCancelled(true);
                         return;
                     } else {
                         dataManager.setdata(againstBlock, "stack", stack + stackitem);
@@ -312,7 +348,6 @@ public class Spawner implements Listener {
                 } else {
                     if (stackitem + 1 > maxstacking) {
                         plugin.adventure().player(p).sendMessage(mm.deserialize(maxmsg.replace("[prefix]", prefix)));
-                        e.setCancelled(true);
                         return;
                     } else {
                         dataManager.setdata(againstBlock, "stack", stackitem + 1);
@@ -324,7 +359,6 @@ public class Spawner implements Listener {
                     int stack = (int) dataManager.getdata(againstBlock, "stack", false);
                     if (stack >= maxstacking) {
                         plugin.adventure().player(p).sendMessage(mm.deserialize(maxmsg.replace("[prefix]", prefix)));
-                        e.setCancelled(true);
                         return;
                     } else {
                         dataManager.setdata(againstBlock, "stack", stack + 1);
@@ -335,8 +369,6 @@ public class Spawner implements Listener {
                     StackingSystem(againstBlock, 2, spawner);
                 }
             }
-
-            e.setCancelled(true);
 
             if (p.getGameMode() != GameMode.CREATIVE) {
                 ItemStack inHand = p.getInventory().getItemInMainHand();
@@ -387,7 +419,7 @@ public class Spawner implements Listener {
                 spawner.setMinSpawnDelay(time * 20);
                 spawner.setDelay(time * 20);
                 spawner.setSpawnCount(stack);
-                spawner.setMaxNearbyEntities(stack * 2);
+                spawner.setMaxNearbyEntities(stack * maxspawn);
                 spawner.update();
 
                 int spawnrange = spawner.getSpawnRange();
@@ -400,21 +432,25 @@ public class Spawner implements Listener {
                 display0.setBillboard(Display.Billboard.CENTER);
                 display1.setBillboard(Display.Billboard.CENTER);
 
-                BukkitTask task = scheduler.runTaskTimer(plugin, () -> {
+                BukkitTask task = scheduler.runTaskTimerAsynchronously(plugin, () -> {
 
                     Block checkblock = block.getLocation().getBlock();
                     if (!dataManager.hasData(checkblock, "stack")) {
                         if (checkblock.getType() == Material.SPAWNER) {
-                            BlockState state = checkblock.getState();
-                            if (state instanceof CreatureSpawner newSpawner) {
-                                if (spawner.getSpawnedType() != newSpawner.getSpawnedType()) {
-                                    removeSpawner(checkblock);
-                                    dataManager.setdata(checkblock, "stack", stack);
-                                    StackingSystem(block, stack, newSpawner);
+                            Bukkit.getScheduler().runTask(plugin, () -> {
+                                BlockState state = checkblock.getState();
+                                if (state instanceof CreatureSpawner newSpawner) {
+                                    if (spawner.getSpawnedType() != newSpawner.getSpawnedType()) {
+                                        removeSpawner(checkblock);
+                                        dataManager.setdata(checkblock, "stack", stack);
+                                        StackingSystem(block, stack, newSpawner);
+                                    }
                                 }
-                            }
+                            });
                         } else {
-                            removeSpawner(checkblock);
+                            Bukkit.getScheduler().runTask(plugin, () -> {
+                                removeSpawner(checkblock);
+                            });
                         }
                     }
 
@@ -425,6 +461,7 @@ public class Spawner implements Listener {
 
                         if (!newText1.equals(display1.text())) {
                             display1.text(newText1);
+                            display1.isValid();
                         }
                     }
 
@@ -432,26 +469,29 @@ public class Spawner implements Listener {
                         finalTime.set(time);
 
                         Location baseLoc = block.getLocation().clone().add(0.5, 0, 0.5);
-                        for (int i = 0; i < spawner.getSpawnCount(); i++) {
+                        Bukkit.getScheduler().runTask(plugin, () -> {
+                            for (int i = 0; i < spawner.getSpawnCount(); i++) {
 
-                            int nearby = (int) block.getWorld().getNearbyEntities(block.getBoundingBox().expand(spawnrange * 2)).stream()
-                                    .filter(entity -> entity.getType() == type.get())
-                                    .count();
+                                int nearby = (int) block.getWorld().getNearbyEntities(block.getBoundingBox().expand(spawnrange * 2)).stream()
+                                        .filter(entity -> entity.getType() == type.get())
+                                        .count();
 
-                            if (nearby >= spawner.getMaxNearbyEntities()) return;
+                                if (nearby >= spawner.getMaxNearbyEntities()) return;
 
-                            Location newloc = baseLoc.clone().add(
-                                    random.nextInt(-spawnrange, spawnrange + 1),
-                                    0,
-                                    random.nextInt(-spawnrange, spawnrange + 1)
-                            );
-                            while (!newloc.getBlock().getType().isAir() && newloc.getY() < 256) {
-                                newloc.add(0, 1, 0);
+                                Location newloc = baseLoc.clone().add(
+                                        random.nextInt(-spawnrange, spawnrange + 1),
+                                        0,
+                                        random.nextInt(-spawnrange, spawnrange + 1)
+                                );
+                                if (!newloc.getBlock().getType().isAir()) {
+                                    continue;
+                                }
+                                newloc.setYaw(random.nextFloat(-180, 180));
+
+                                block.getWorld().spawnParticle(Particle.CLOUD, newloc,3,0, 1, 0, 0.1);
+                                block.getWorld().spawnEntity(newloc, type.get());
                             }
-                            newloc.setYaw(random.nextFloat(-180, 180));
-                            block.getWorld().spawnParticle(Particle.CLOUD, newloc,3,0, 1, 0, 0.1);
-                            block.getWorld().spawnEntity(newloc, type.get());
-                        }
+                        });
 
                     }
 

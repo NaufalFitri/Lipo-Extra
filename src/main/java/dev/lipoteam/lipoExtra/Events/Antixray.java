@@ -146,7 +146,7 @@ public class Antixray implements Listener {
                                         .setDescription(String.join("\n", descriptionList)
                                                 .replace("[player]", p.getName()).replace("[amount]", String.valueOf(finalAmount)).replace("[ore]", m.name())
                                                 .replace("[time]", String.valueOf(time)).replace("[prefix]", prefix)
-                                                .replace("[position]", world + " " + x + "," + y + "," + z))
+                                                .replace("[position]",   x + " " + y + " " + z + " " + world))
                                         .setColor(Color.decode(discordmsg.getEmbedColor()));
 
                                 if (!url.isEmpty()) {

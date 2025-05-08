@@ -21,27 +21,31 @@ import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.*;
 import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.entity.Item;
-import org.bukkit.entity.Player;
+import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.player.*;
 import org.bukkit.event.server.TabCompleteEvent;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.BundleMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitScheduler;
 import org.bukkit.scheduler.BukkitTask;
 import org.geysermc.floodgate.api.FloodgateApi;
+import org.jetbrains.annotations.NotNull;
 import se.file14.procosmetics.api.events.PlayerEquipCosmeticEvent;
 import se.file14.procosmetics.api.events.PlayerUnequipCosmeticEvent;
+import se.file14.procosmetics.cosmetic.pet.P;
 import su.nightexpress.coinsengine.api.CoinsEngineAPI;
 import su.nightexpress.coinsengine.api.currency.Currency;
 
@@ -53,6 +57,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class Event implements Listener {
 
@@ -106,6 +111,18 @@ public class Event implements Listener {
     private boolean flyCMI;
     private String flyCMICommand;
 
+    private Particle cvparticle;
+    private double cvspeed;
+    private int cvcount;
+    private String cvitemname;
+    private List<String> cvitemlore;
+
+    private final List<UUID> delayCV = new ArrayList<>();
+    private Component CVUsed;
+    private Component TamedCantTp;
+
+    private String prefix;
+
     MiniMessage mm = MiniMessage.miniMessage();
 
     public Event(Configurations config, LipoExtra lipoHud) {
@@ -120,6 +137,41 @@ public class Event implements Listener {
         protocolmanager.addPacketListener(DetectActionBar());
         protocolmanager.addPacketListener(DetectActionBar1());
 
+        PacketType packetType = PacketType.Play.Client.WINDOW_CLICK;
+
+    }
+
+    private final List<UUID> delayexploit = new ArrayList<>();
+
+    @EventHandler
+    public void onUse(PlayerInteractEvent event) {
+        ItemStack item = event.getItem();
+        if (item != null && item.getType() == Material.BUNDLE && event.getAction().isRightClick()) {
+            event.setCancelled(true);
+
+            Player player = event.getPlayer();
+
+            BundleMeta bundleMeta = (BundleMeta) item.getItemMeta();
+            if (bundleMeta != null) {
+                List<ItemStack> items = bundleMeta.getItems();
+
+                if (!items.isEmpty()) {
+                    ItemStack drop = items.getFirst();
+                    List<ItemStack> newitems = new ArrayList<>(bundleMeta.getItems());
+                    newitems.removeFirst();
+                    bundleMeta.setItems(newitems);
+                    item.setItemMeta(bundleMeta);
+                    player.getWorld().dropItem(player.getLocation(), drop);
+                }
+            }
+
+            UUID id = event.getPlayer().getUniqueId();
+            if (!delayexploit.contains(id)) {
+                event.getPlayer().sendMessage(mm.deserialize("<red>Drop item from bundle is using alternative method due to a known crash exploit."));
+                delayexploit.add(id);
+                Bukkit.getScheduler().runTaskLater(lipo, () -> delayexploit.remove(id), 180L);
+            }
+        }
     }
 
     private PacketListener DetectActionBar() {
@@ -236,44 +288,6 @@ public class Event implements Listener {
             }
         }
     }
-
-//    @EventHandler(priority = EventPriority.HIGHEST)
-//    private void InventoryInteract(InventoryInteractEvent event) {
-//        if (!override) {
-//            return;
-//        }
-//
-//        Inventory inv = event.getInventory();
-//
-//        if (event.getWhoClicked() instanceof Player p) {
-//            for (ItemStack item : inv.getContents()) {
-//                if (item != null) {
-//                    ItemMeta meta = item.getItemMeta();
-//                    if (meta != null) {
-//
-//                        String name = meta.getDisplayName();
-//                        if (!name.isEmpty()) {
-//                            String parsedName = PlaceholderAPI.setPlaceholders((OfflinePlayer) p, name);
-//                            meta.displayName(mm.deserialize(convert(parsedName, true, '§', true)).decoration(TextDecoration.ITALIC, false));
-//                        }
-//
-//                        List<String> lores = meta.getLore();
-//                        if (lores != null && !lores.isEmpty()) {
-//                            List<Component> newLore = new ArrayList<>();
-//                            for (String line : lores) {
-//                                String parsedLore = PlaceholderAPI.setPlaceholders((OfflinePlayer) p, line);
-//                                newLore.add(mm.deserialize(convert(parsedLore, true, '§', true)).decoration(TextDecoration.ITALIC, false));
-//                            }
-//                            meta.lore(newLore);
-//                        }
-//
-//                        item.setItemMeta(meta);
-//
-//                    }
-//                }
-//            }
-//        }
-//    }
 
     @EventHandler(priority = EventPriority.HIGHEST)
     private void InventoryClick(InventoryClickEvent event) {
@@ -636,6 +650,154 @@ public class Event implements Listener {
     }
 
     @EventHandler
+    private void TameEntityTeleport(PlayerTeleportEvent e) {
+
+        if (e.getTo().getWorld() != e.getFrom().getWorld()) {
+            Location loc = e.getFrom();
+            Player p = e.getPlayer();
+
+            Bukkit.getScheduler().runTaskLater(lipo, () -> {
+                Collection<Tameable> nearbyEntities = loc.getNearbyEntitiesByType(Tameable.class, 5);
+                nearbyEntities.stream()
+                        .filter(t -> t.getOwner() != null && t.getOwner().getUniqueId().equals(p.getUniqueId()))
+                        .forEach(t -> teleportTamedEntity(p, t));
+            }, 1L);
+        }
+    }
+
+    private void teleportTamedEntity(Player p, Tameable t) {
+
+        if (!t.isInvulnerable()) {
+            Bukkit.getScheduler().runTaskLater(lipo, () -> t.setInvulnerable(false), 100L);
+        }
+
+        Location tploc = p.getLocation().clone();
+        tploc.setY(getGroundY(tploc));
+
+        if (tploc.getBlockY() >= 256 || tploc.getBlockY() <= -64) {
+            p.sendMessage(TamedCantTp);
+            return;
+        }
+
+        if (!t.isLeashed() && (!(t instanceof Sittable s) || !s.isSitting())) {
+            t.setInvulnerable(true);
+            t.teleport(tploc);
+        }
+
+    }
+
+
+    private int getGroundY(Location loc) {
+        double y = loc.getY();
+
+        if (loc.getBlock().getType().isAir()) {
+            while (loc.getBlock().getType().isAir() && y > -64) {
+                y--;
+                loc.setY(y);
+            }
+            if (y > -64) {
+                y++;
+            }
+        } else {
+            while (!loc.getBlock().getType().isAir() && y < 256) {
+                y++;
+                loc.setY(y);
+            }
+        }
+
+        return (int) y;
+    }
+
+    @EventHandler
+    private void ChunkVisualizerInteract(PlayerInteractEvent e) {
+        if (e.getAction() != Action.RIGHT_CLICK_AIR && e.getAction() != Action.RIGHT_CLICK_BLOCK) return;
+        
+        ItemStack item = e.getItem();
+        Player p = e.getPlayer();
+
+        if (delayCV.contains(p.getUniqueId())) return;
+
+        if (item == null || !dataManager.hasData(item, "uses")) return;
+
+        int uses = (int) dataManager.getdata(item, "uses", false);
+
+        Chunk chunk = p.getLocation().getChunk();
+        World world = chunk.getWorld();
+
+        int baseX = chunk.getX() << 4;
+        int baseZ = chunk.getZ() << 4;
+        double y = p.getLocation().getY();
+
+        List<Location> borderLocations = new ArrayList<>(64);
+        for (int x = 0; x < 16; x++) {
+            for (int z = 0; z < 16; z++) {
+                if (x == 0 || x == 15 || z == 0 || z == 15) {
+                    borderLocations.add(new Location(world, baseX + x + 0.5, y, baseZ + z + 0.5));
+                }
+            }
+        }
+
+        final int maxTicks = 16;
+        final int interval = 2;
+
+        final int[] repeat = {0};
+        Bukkit.getScheduler().runTaskTimer(lipo, d -> {
+            if (repeat[0] >= 3) {
+                d.cancel();
+                return;
+            }
+
+            final int[] ticks = {0};
+
+            Bukkit.getScheduler().runTaskTimer(lipo, t -> {
+                if (ticks[0] >= maxTicks) {
+                    t.cancel();
+                    return;
+                }
+
+                for (Location loc : borderLocations) {
+                    Location theloc = loc.clone();
+                    theloc.setY(y + ticks[0]);
+                    p.spawnParticle(cvparticle, theloc, cvcount, 0, 0, 0, cvspeed);
+                }
+
+                ticks[0]++;
+            }, 0L, interval);
+
+            repeat[0]++;
+        }, 0L, (maxTicks * interval) + 15L);
+
+        delayCV.add(p.getUniqueId());
+        Bukkit.getScheduler().runTaskLater(lipo, () -> {
+            delayCV.remove(p.getUniqueId());
+        }, 60L);
+
+        if (uses > 1) {
+            dataManager.setdata(item, "uses", uses - 1);
+            ItemMeta meta = item.getItemMeta();
+            if (meta != null) {
+                meta.displayName(mm.deserialize(cvitemname));
+                List<Component> lore = cvitemlore.stream()
+                        .map(u -> mm.deserialize(u.replace("[uses]", String.valueOf(uses - 1))))
+                        .collect(Collectors.toList());
+                meta.lore(lore);
+                item.setItemMeta(meta);
+            }
+            p.sendMessage(CVUsed);
+        } else {
+            if (item.getAmount() > 1) {
+                item.setAmount(item.getAmount() - 1); // just subtract 1
+            } else {
+                if (e.getHand() == EquipmentSlot.HAND) {
+                    p.getInventory().setItemInMainHand(new ItemStack(Material.AIR));
+                } else if (e.getHand() == EquipmentSlot.OFF_HAND) {
+                    p.getInventory().setItemInOffHand(new ItemStack(Material.AIR));
+                }
+            }
+        }
+    }
+
+    @EventHandler
     private void PlayerLeave(PlayerQuitEvent e) {
         UUID playerID = e.getPlayer().getUniqueId();
         playerClient.remove(playerID);
@@ -780,7 +942,7 @@ public class Event implements Listener {
             if (e.getPlayer().hasMetadata("fly")) {
                 boolean fly = e.getPlayer().getMetadata("fly").getFirst().asBoolean();
                 if (fly) {
-                    Bukkit.dispatchCommand(e.getPlayer(), flyCMICommand);
+                    Bukkit.getScheduler().runTask(lipo, () -> Bukkit.dispatchCommand(e.getPlayer(), flyCMICommand));
                     e.getPlayer().removeMetadata("fly", lipo);
                 }
             }
@@ -893,6 +1055,16 @@ public class Event implements Listener {
         tagConfig = lipo.getTagConfig();
         flyCMI = config.FlyCMIEnabled();
         flyCMICommand = config.FlyCMICommand();
+
+        cvparticle = config.CVParticle();
+        cvspeed = config.CVParticleSpeed();
+        cvcount = config.CVParticleCount();
+        cvitemname = config.CVItemName();
+        cvitemlore = config.CVItemLore();
+
+        prefix = config.prefix();
+        CVUsed = mm.deserialize(prefix + "Chunk visualized! <red>-1 uses");
+        TamedCantTp = mm.deserialize(prefix + "<red>Tamed animals cannot find suitable location!");
 
         RunActionBar();
     }

@@ -8,6 +8,8 @@ import de.tr7zw.changeme.nbtapi.NBTType;
 import dev.jorel.commandapi.CommandAPICommand;
 import dev.jorel.commandapi.arguments.*;
 import dev.lipoteam.lipoExtra.BedrockForm;
+import dev.lipoteam.lipoExtra.Files.ElevatorConfig;
+import dev.lipoteam.lipoExtra.Files.MobcatcherConfig;
 import dev.lipoteam.lipoExtra.Manager.DataManager;
 import dev.lipoteam.lipoExtra.Events.Event;
 import dev.lipoteam.lipoExtra.Files.Configurations;
@@ -16,13 +18,15 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.NamespacedKey;
+import org.bukkit.*;
+import org.bukkit.block.Block;
 import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
+import se.file14.procosmetics.cosmetic.pet.P;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -30,11 +34,14 @@ import java.util.stream.Collectors;
 
 public class Commands {
     private Configurations config;
+    private LipoExtra plugin;
     private final DataManager dataManager;
+    private final MiniMessage mm;
 
     public Commands(Configurations configurations, LipoExtra lipoExtra) {
 
-        var mm = MiniMessage.miniMessage();
+        mm = MiniMessage.miniMessage();
+        this.plugin = lipoExtra;
         setConfig(configurations);
         ConsoleCommandSender console = lipoExtra.getServer().getConsoleSender();
         dataManager = new DataManager(lipoExtra);
@@ -319,12 +326,25 @@ public class Commands {
                         }))
                 .withSubcommand(new CommandAPICommand("getblockpdc")
                         .withPermission("lipoextra.commands.getblockpdc")
-                        .withArguments(new LocationArgument("location"))
+                        .withArguments(new LocationArgument("location").replaceSafeSuggestions(SafeSuggestions.suggestCollection(
+                                info -> {
+                                    if (info.sender() instanceof Player p) {
+                                        Block target = p.getTargetBlockExact(5);
+                                        if (target != null) {
+                                            return List.of(target.getLocation());
+                                        }
+                                    }
+                                    return List.of();
+                                }
+                        )))
                         .executes((sender, args) -> {
                             Location loc = (Location) args.get("location");
                             if (sender instanceof Player p && loc != null) {
                                 PersistentDataContainer pdc = new CustomBlockData(loc.getBlock(), lipoExtra);
 
+                                if (pdc.getKeys().isEmpty()) {
+                                    p.sendMessage(mm.deserialize(prefix + "<gray>No PersistentData were found"));
+                                }
                                 for (NamespacedKey key : pdc.getKeys()) {
                                     String value = "unknown";
 
@@ -344,6 +364,111 @@ public class Commands {
                                 }
                             }
                         }))
+                .withSubcommand(new CommandAPICommand("chunkvisual")
+                        .withPermission("lipoextra.commands.chunkvisual")
+                        .withOptionalArguments(new PlayerArgument("player").replaceSafeSuggestions(SafeSuggestions.suggest(
+                                info -> Bukkit.getOnlinePlayers().toArray(new Player[0])
+                        )))
+                        .withOptionalArguments(new IntegerArgument("amount"))
+                        .withOptionalArguments(new IntegerArgument("uses"))
+                        .executes((sender, args) -> {
+                            Player p1 = (Player) args.get("player");
+                            int amount;
+                            int uses;
+                            try {
+                                uses = (int) args.get("uses");
+                            } catch (NullPointerException ex) {
+                                uses = 0;
+                            }
+                            try {
+                                amount = (int) args.get("amount");
+                            } catch (NullPointerException ex) {
+                                amount = 0;
+                            }
+
+                            if (amount == 0) {
+                                amount = 1;
+                            }
+                            if (uses == 0) {
+                                uses = 1;
+                            }
+
+                            if (sender instanceof Player p) {
+
+                                GiveChunkVisualizer(Objects.requireNonNullElse(p1, p), amount, uses);
+
+                            } else {
+                                if (p1 != null) {
+                                    GiveChunkVisualizer(p1, amount,uses);
+                                } else {
+                                    lipoExtra.adventure().console().sendMessage(mm.deserialize(prefix + "<red>Please specify the player!"));
+                                }
+                            }
+                        })
+                )
+                .withSubcommand(new CommandAPICommand("elevatorkit")
+                        .withPermission("lipoextra.commands.elevator")
+                        .withOptionalArguments(new PlayerArgument("player").replaceSafeSuggestions(SafeSuggestions.suggest(
+                                info -> Bukkit.getOnlinePlayers().toArray(new Player[0])
+                        )))
+                        .withOptionalArguments(new IntegerArgument("amount"))
+                        .executes((sender, args) -> {
+                            Player p1 = (Player) args.get("player");
+                            int amount;
+                            try {
+                                amount = (int) args.get("amount");
+                            } catch (NullPointerException ex) {
+                                amount = 0;
+                            }
+
+                            if (amount == 0) {
+                                amount = 1;
+                            }
+
+                            if (sender instanceof Player p) {
+
+                                GiveElevatorKit(Objects.requireNonNullElse(p1, p), amount);
+
+                            } else {
+                                if (p1 != null) {
+                                    GiveElevatorKit(p1, amount);
+                                } else {
+                                    lipoExtra.adventure().console().sendMessage(mm.deserialize(prefix + "<red>Please specify the player!"));
+                                }
+                            }
+                        })
+                ).withSubcommand(new CommandAPICommand("mobcatcher")
+                        .withPermission("lipoextra.commands.mobcatcher")
+                        .withOptionalArguments(new PlayerArgument("player").replaceSafeSuggestions(SafeSuggestions.suggest(
+                                info -> Bukkit.getOnlinePlayers().toArray(new Player[0])
+                        )))
+                        .withOptionalArguments(new IntegerArgument("amount"))
+                        .executes((sender, args) -> {
+                            Player p1 = (Player) args.get("player");
+                            int amount;
+                            try {
+                                amount = (int) args.get("amount");
+                            } catch (NullPointerException ex) {
+                                amount = 0;
+                            }
+
+                            if (amount == 0) {
+                                amount = 1;
+                            }
+
+                            if (sender instanceof Player p) {
+
+                                GiveMobCatcher(Objects.requireNonNullElse(p1, p), amount);
+
+                            } else {
+                                if (p1 != null) {
+                                    GiveMobCatcher(p1, amount);
+                                } else {
+                                    lipoExtra.adventure().console().sendMessage(mm.deserialize(prefix + "<red>Please specify the player!"));
+                                }
+                            }
+                        })
+                )
                 .register("lipo");
 
     }
@@ -351,10 +476,99 @@ public class Commands {
     private String prefix;
     private String modechange;
 
+    private String cvitem;
+    private String cvitemname;
+    private List<String> cvitemlore;
+
+    private void GiveChunkVisualizer(Player p, int amount, int uses) {
+        p.sendMessage(mm.deserialize(prefix + "<reset>You have been given " + amount + " <gradient:#fff500:#ffc700>ChunkVisualizer"));
+        ItemStack chunkitem = ItemStack.of(Material.valueOf(cvitem), amount);
+        dataManager.setdata(chunkitem, "uses", uses);
+        ItemMeta meta = chunkitem.getItemMeta();
+        if (meta != null) {
+            meta.displayName(mm.deserialize(cvitemname));
+            List<Component> lore = cvitemlore.stream()
+                    .map(u -> mm.deserialize(u.replace("[uses]", String.valueOf(uses))))
+                    .collect(Collectors.toList());
+            meta.lore(lore);
+            chunkitem.setItemMeta(meta);
+        }
+        HashMap<Integer, ItemStack> leftovers = p.getInventory().addItem(chunkitem);
+        for (ItemStack leftover : leftovers.values()) {
+            p.getWorld().dropItemNaturally(p.getLocation(), leftover);
+        }
+    }
+
+    private ItemStack elevatorkit;
+    private String elevatorprefix;
+    private List<String> elevatorlore;
+    private String elevatorname;
+
+    private void GiveElevatorKit(Player p, int amount) {
+        p.sendMessage(mm.deserialize(elevatorprefix + "<reset>You have been given " + amount + " " + elevatorname));
+        ItemStack item = elevatorkit;
+        item.setAmount(amount);
+        dataManager.setdata(item, "kit", true);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            List<Component> lore = elevatorlore.stream()
+                    .map(u -> mm.deserialize(u.replace("[location]", "")))
+                    .collect(Collectors.toList());
+            meta.lore(lore);
+            item.setItemMeta(meta);
+        }
+        HashMap<Integer, ItemStack> leftovers = p.getInventory().addItem(item);
+        for (ItemStack leftover : leftovers.values()) {
+            p.getWorld().dropItemNaturally(p.getLocation(), leftover);
+        }
+    }
+
+    private ItemStack mobcatcheritem;
+    private String mobcatcherprefix;
+    private String mobcatchername;
+    private List<String> mobcatcherlore;
+
+    private void GiveMobCatcher(Player p, int amount) {
+        p.sendMessage(mm.deserialize(mobcatcherprefix + "<reset>You have been given " + amount + " " + mobcatchername));
+        ItemStack item = mobcatcheritem;
+        item.setAmount(amount);
+        dataManager.setdata(item, "catcher", UUID.randomUUID().toString());
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            List<Component> lore = mobcatcherlore.stream()
+                    .map(mm::deserialize)
+                    .collect(Collectors.toList());
+            meta.lore(lore);
+            item.setItemMeta(meta);
+        }
+        HashMap<Integer, ItemStack> leftovers = p.getInventory().addItem(item);
+        for (ItemStack leftover : leftovers.values()) {
+            p.getWorld().dropItemNaturally(p.getLocation(), leftover);
+        }
+    }
+
     public void setConfig(Configurations config) {
 
         this.config = config;
         this.prefix = config.prefix();
         this.modechange = config.ModeChangeMsg();
+        cvitem = config.CVItem();
+
+        cvitemname = config.CVItemName();
+        cvitemlore = config.CVItemLore();
+
+        ElevatorConfig elevatorConfig = plugin.getElevatorConfig();
+        elevatorkit = elevatorConfig.item();
+        elevatorprefix = elevatorConfig.prefix();
+        elevatorlore = elevatorConfig.itemlore();
+        elevatorname = elevatorConfig.itemname();
+
+        MobcatcherConfig mobcatcherConfig = plugin.getMobCatcherConfig();
+        mobcatcheritem = mobcatcherConfig.item();
+        mobcatcherprefix = mobcatcherConfig.prefix();
+        mobcatchername = mobcatcherConfig.itemname();
+        mobcatcherlore = mobcatcherConfig.itemlore();
+
+
     }
 }

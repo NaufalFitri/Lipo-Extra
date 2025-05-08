@@ -11,6 +11,8 @@ hologram:
 
 max-stacking: 15
 
+multiplier-maxspawn: 3
+
 # +2 per stack
 sec-per-stacking: 2
 

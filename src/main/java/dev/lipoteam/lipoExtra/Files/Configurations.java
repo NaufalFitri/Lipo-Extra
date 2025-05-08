@@ -148,6 +148,24 @@ public class Configurations {
         return null;
     }
 
+    public Particle CVParticle() {
+        return Particle.valueOf(config.getString("chunkvisualizer.particle"));
+    }
+
+    public double CVParticleSpeed() {
+        return config.getDouble("chunkvisualizer.speed");
+    }
+
+    public int CVParticleCount() {
+        return config.getInt("chunkvisualizer.count");
+    }
+
+    public String CVItem() { return config.getString("chunkvisualizer.item.material"); }
+
+    public String CVItemName() { return config.getString( "chunkvisualizer.item.name"); }
+
+    public List<String> CVItemLore() { return config.getStringList("chunkvisualizer.item.lore"); }
+
     public Particle FlyParticle() {
         return Particle.valueOf(config.getString("particle.on-fly.particle"));
     }

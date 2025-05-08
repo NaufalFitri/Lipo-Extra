@@ -1,0 +1,34 @@
+prefix: <dark_gray>[<#adff00><bold>!</bold><#DC143C><dark_gray>] <bold><#adff00>Elevator</bold>
+  <dark_gray>»<reset>
+
+enabled: true
+
+min-gap: 3
+max-gap: 20
+
+lang:
+  title: ''
+  subtitle: <#adff00>Floor <white>[floor]
+  actionbar: '<#adff00>MinFloor<white>: [minfloor] <dark_gray>| <#adff00>MaxFloor<white>:
+    [maxfloor] '
+  bounded: '[prefix] That block have been set to be an elevator'
+  not-safe: '[prefix] The elevator is not safe to use!'
+  occupied: '[prefix] There are already elevator here!'
+  unbound: '[prefix] You have unbound your kit'
+  claim: '[prefix] You cannot create an elevator inside someone''s claim!'
+
+sound:
+  elevated:
+    sound: block.amethyst_cluster.place
+    source: BLOCK
+    pitch: 1
+    radius: 3
+
+item:
+  material: GLOWSTONE_DUST
+  name: <!i><gradient:#adff00:#fff500>Elevator Kit
+  glint: true
+  lore:
+    - '<!i><white>Bound Location: [location]'
+    - '<!i><gray>Shift Right click a block to unbound'
+    - '<!i><gray>Right click a block to bound'

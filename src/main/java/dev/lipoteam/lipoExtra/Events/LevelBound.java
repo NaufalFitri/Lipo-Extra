@@ -13,6 +13,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
+import org.bukkit.event.player.PlayerPortalEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.event.world.PortalCreateEvent;
 
@@ -136,20 +137,15 @@ public class LevelBound implements Listener {
     }
 
     @EventHandler
-    private void PortalCreated(PortalCreateEvent e) {
+    public void onPortal(PlayerPortalEvent e) {
         if (!enabled) return;
 
-        System.out.println(e.getWorld().getName());
-        System.out.println(e.getEntity());
+        Player p = e.getPlayer();
 
-        if (e.getWorld().getName().contains("nether")) {
-            if (worldrtp.get(e.getWorld().getName())) {
-                if (e.getEntity() instanceof Player p) {
-                    if (!p.getWorld().getName().contains("nether")) {
-                        Bukkit.dispatchCommand(plugin.getServer().getConsoleSender(), "rt " + p.getName() + " " + e.getWorld().getName());
-                    }
-                }
-                e.setCancelled(true);
+        if (e.getTo().getWorld().getName().contains("nether")) {
+            if (worldrtp.get(e.getTo().getWorld().getName())) {
+                e.setCancelled(true); // cancel the portal teleport
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "rt " + p.getName() + " " + e.getTo().getWorld().getName());
             }
         }
     }

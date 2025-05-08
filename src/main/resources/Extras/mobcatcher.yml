@@ -1,0 +1,21 @@
+prefix: "<dark_gray>[<#adff00><bold>!</bold><#DC143C><dark_gray>] <bold><#adff00>Catcher</bold> <dark_gray>»<reset>"
+
+enabled: true
+
+lang:
+  catch: "[prefix] You've caught a [mob]"
+  fail: "[prefix] You've failed catch a [mob]"
+  claim: '[prefix] You cannot catch a mob inside someone''s claim!'
+
+chances: 0.8
+
+# in minutes
+reset-mob-uncatchable: 5
+
+item:
+  material: LEAD
+  name: "<!i>MobCatcher"
+  lore:
+    - "<!i><dark_gray>Right click an entity to catch them!"
+
+blacklist-mob: []

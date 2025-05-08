@@ -27,6 +27,8 @@ public class SpawnerConfig {
 
     public int maxStacking() { return config.getInt("max-stacking"); }
 
+    public int multiplerMaxSpawn() { return config.getInt("multiplier-maxspawn"); }
+
     public int secStacking() { return config.getInt("sec-per-stacking"); }
 
     public int initialSeconds() { return config.getInt("initial-seconds"); }

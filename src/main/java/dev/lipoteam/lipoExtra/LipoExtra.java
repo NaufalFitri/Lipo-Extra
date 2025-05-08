@@ -1,7 +1,9 @@
 package dev.lipoteam.lipoExtra;
 
+import com.griefdefender.api.Core;
+import com.griefdefender.api.GriefDefender;
 import com.jeff_media.customblockdata.CustomBlockData;
-import com.xxmicloxx.NoteBlockAPI.NoteBlockAPI;
+
 import de.tr7zw.changeme.nbtapi.NBT;
 import dev.jorel.commandapi.CommandAPI;
 import dev.jorel.commandapi.CommandAPIBukkitConfig;
@@ -10,21 +12,32 @@ import dev.lipoteam.lipoExtra.Discord.DiscordEvent;
 import dev.lipoteam.lipoExtra.Events.*;
 import dev.lipoteam.lipoExtra.Files.*;
 import dev.lipoteam.lipoExtra.Manager.DataManager;
-import dev.lipoteam.lipoExtra.Tiktok.TiktokEvent;
+
+import net.coreprotect.CoreProtect;
+import net.coreprotect.CoreProtectAPI;
 import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.platform.bukkit.BukkitAudiences;
+
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.block.Block;
 import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
+
+import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.scheduler.BukkitTask;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import se.file14.procosmetics.ProCosmetics;
 import se.file14.procosmetics.api.ProCosmeticsProvider;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+
 
 public final class LipoExtra extends JavaPlugin {
 
@@ -42,6 +55,8 @@ public final class LipoExtra extends JavaPlugin {
     private TagConfig tagConfig;
     private SpawnerConfig spawnerConfig;
     private TikTokConfig tikTokConfig;
+    private ElevatorConfig elevatorConfig;
+    private MobcatcherConfig mobCatcherConfig;
 
     private Commands commands;
     private FightCommands fightCommands;
@@ -62,6 +77,8 @@ public final class LipoExtra extends JavaPlugin {
     private Leaderboard leaderboardevent;
     private Antixray xrayEvent;
     private Spawner spawnerEvent;
+    private Elevator elevatorEvent;
+    private Mobcatcher mobcatcherEvent;
 
     private BedrockForm form;
 
@@ -81,6 +98,8 @@ public final class LipoExtra extends JavaPlugin {
     private File tiktokfile;
     private File tagfile;
     private File spawnerfile;
+    private File elevatorfile;
+    private File mobfile;
     private FileConfiguration coins;
     private FileConfiguration ranks;
     private FileConfiguration jobs;
@@ -95,6 +114,8 @@ public final class LipoExtra extends JavaPlugin {
     private FileConfiguration tiktok;
     private FileConfiguration tags;
     private FileConfiguration spawner;
+    private FileConfiguration elevator;
+    private FileConfiguration mobcatcher;
 
     private static DataManager dataManager;
     private BukkitAudiences adventure;
@@ -114,6 +135,15 @@ public final class LipoExtra extends JavaPlugin {
 
     @Override
     public void onEnable() {
+
+//        BukkitVoicechatService service = getServer().getServicesManager().load(BukkitVoicechatService.class);
+//        if (service != null) {
+//            voicechatPlugin = new ExampleVoicechatPlugin();
+//            service.registerPlugin(voicechatPlugin);
+//            getLogger().info("Successfully registered example plugin");
+//        } else {
+//            getLogger().info("Failed to register example plugin");
+//        }
 
         CustomBlockData.registerListener(this);
 
@@ -146,6 +176,8 @@ public final class LipoExtra extends JavaPlugin {
         antixrayConfig = new AntixrayConfig(this, antixray);
         spawnerConfig = new SpawnerConfig(spawner, this);
         tikTokConfig = new TikTokConfig(tiktok, this);
+        elevatorConfig = new ElevatorConfig(elevator, this);
+        mobCatcherConfig = new MobcatcherConfig(mobcatcher, this);
 
         config = new Configurations(getConfig(), this);
 
@@ -211,6 +243,8 @@ public final class LipoExtra extends JavaPlugin {
         leaderboardevent = new Leaderboard(leaderboardConfig, this);
         xrayEvent = new Antixray(this, antixrayConfig);
         spawnerEvent = new Spawner(spawnerConfig, this);
+        elevatorEvent = new Elevator(elevatorConfig, this);
+        mobcatcherEvent = new Mobcatcher(mobCatcherConfig, this);
 
         getServer().getPluginManager().registerEvents(event, this);
         getServer().getPluginManager().registerEvents(ramadanevent, this);
@@ -222,6 +256,8 @@ public final class LipoExtra extends JavaPlugin {
         getServer().getPluginManager().registerEvents(leaderboardevent, this);
         getServer().getPluginManager().registerEvents(xrayEvent, this);
         getServer().getPluginManager().registerEvents(spawnerEvent, this);
+        getServer().getPluginManager().registerEvents(elevatorEvent, this);
+        getServer().getPluginManager().registerEvents(mobcatcherEvent, this);
 
         if (Bukkit.getPluginManager().isPluginEnabled("floodgate")) {
             form = new BedrockForm(config, this);
@@ -254,6 +290,8 @@ public final class LipoExtra extends JavaPlugin {
         tags = YamlConfiguration.loadConfiguration(tagfile);
         spawner = YamlConfiguration.loadConfiguration(spawnerfile);
         tiktok = YamlConfiguration.loadConfiguration(tiktokfile);
+        elevator = YamlConfiguration.loadConfiguration(elevatorfile);
+        mobcatcher = YamlConfiguration.loadConfiguration(mobfile);
 
         try {
             ramadan.save(ramadanfile);
@@ -270,6 +308,8 @@ public final class LipoExtra extends JavaPlugin {
             tags.save(tagfile);
             spawner.save(spawnerfile);
             tiktok.save(tiktokfile);
+            elevator.save(elevatorfile);
+            mobcatcher.save(mobfile);
         } catch (IOException e) {
             getLogger().info(e.getMessage());
         }
@@ -287,6 +327,8 @@ public final class LipoExtra extends JavaPlugin {
         tagConfig = new TagConfig(tags, this);
         spawnerConfig = new SpawnerConfig(spawner, this);
         tikTokConfig = new TikTokConfig(tiktok, this);
+        elevatorConfig = new ElevatorConfig(elevator, this);
+        mobCatcherConfig = new MobcatcherConfig(mobcatcher, this);
 
         ramadanevent.setConfig(ramadanconfig);
         event.setConfig(config);
@@ -299,6 +341,8 @@ public final class LipoExtra extends JavaPlugin {
         leaderboardevent.setConfig(leaderboardConfig);
         xrayEvent.setConfig(antixrayConfig);
         spawnerEvent.setConfig(spawnerConfig);
+        elevatorEvent.setConfig(elevatorConfig);
+        mobcatcherEvent.setConfig(mobCatcherConfig);
 
         commands.setConfig(config);
         fightCommands.setConfig(fightConfig);
@@ -343,7 +387,17 @@ public final class LipoExtra extends JavaPlugin {
         tagfile = new File(extrasFolder, "tag.yml");
         spawnerfile = new File(extrasFolder, "spawner.yml");
         tiktokfile = new File(extrasFolder, "tiktok.yml");
+        elevatorfile = new File(extrasFolder, "elevator.yml");
+        mobfile = new File(extrasFolder, "mobcatcher.yml");
 
+        if (!mobfile.exists()) {
+            mobfile.getParentFile().mkdirs();
+            saveResource("Extras/mobcatcher.yml", false);
+        }
+        if (!elevatorfile.exists()) {
+            elevatorfile.getParentFile().mkdirs();
+            saveResource("Extras/elevator.yml", false);
+        }
         if (!tiktokfile.exists()) {
             tiktokfile.getParentFile().mkdirs();
             saveResource("Extras/tiktok.yml", false);
@@ -422,6 +476,8 @@ public final class LipoExtra extends JavaPlugin {
         antixray = YamlConfiguration.loadConfiguration(xrayfile);
         tags = YamlConfiguration.loadConfiguration(tagfile);
         tiktok = YamlConfiguration.loadConfiguration(tiktokfile);
+        elevator = YamlConfiguration.loadConfiguration(elevatorfile);
+        mobcatcher = YamlConfiguration.loadConfiguration(mobfile);
 
     }
 
@@ -449,6 +505,10 @@ public final class LipoExtra extends JavaPlugin {
         return ranks;
     }
 
+    public ElevatorConfig getElevatorConfig() { return elevatorConfig; }
+
+    public MobcatcherConfig getMobCatcherConfig() { return mobCatcherConfig; }
+
     public TagConfig getTagConfig() {
         return tagConfig;
     }
@@ -458,6 +518,18 @@ public final class LipoExtra extends JavaPlugin {
     @Override
     public void onDisable() {
         pinataConfig.setCurrentVote(Pinata.voteCurrent);
+
+        Map<Location, BukkitTask> tasks = new HashMap<>(spawnerEvent.activeTasks);
+
+        tasks.values().forEach(BukkitTask::cancel);
+
+        for (Location spawnerloc : tasks.keySet()) {
+            Block block = spawnerloc.getBlock();
+            if (dataManager.hasData(block, "display0")) {
+                spawnerEvent.deactivateSpawner(block);
+            }
+        }
+
         var mm = MiniMessage.miniMessage();
         DataManager dataManager = new DataManager(this);
 
@@ -467,6 +539,41 @@ public final class LipoExtra extends JavaPlugin {
         }
 
         dataManager.sendMessage(console, mm.deserialize(config.prefix() + "<white>Disabled"));
+    }
+
+    public CoreProtectAPI getCoreProtect() {
+        Plugin plugin = getServer().getPluginManager().getPlugin("CoreProtect");
+
+        // Check that CoreProtect is loaded
+        if (!(plugin instanceof CoreProtect)) {
+            return null;
+        }
+
+        // Check that the API is enabled
+        CoreProtectAPI CoreProtect = ((CoreProtect) plugin).getAPI();
+        if (!CoreProtect.isEnabled()) {
+            return null;
+        }
+
+        // Check that a compatible version of the API is loaded
+        if (CoreProtect.APIVersion() < 10) {
+            return null;
+        }
+
+        return CoreProtect;
+    }
+
+    public Core getGriefDefender() {
+
+        Plugin plugin = getServer().getPluginManager().getPlugin("GriefDefender");
+
+        // Check that CoreProtect is loaded
+        if (plugin == null) {
+            return null;
+        }
+
+        return GriefDefender.getCore();
+
     }
 
 

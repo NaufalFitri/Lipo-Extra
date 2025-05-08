@@ -4,5 +4,5 @@ main: dev.lipoteam.lipoExtra.LipoExtra
 api-version: '1.21'
 authors: [ Nopal, Nxsrulswd ]
 description: Extra Plugin made by Lipo Team
-softdepend: [Jobs, CMILib, NoteBlockAPI, AdvancedChests, ProCosmetics]
+softdepend: [Jobs, CMILib, NoteBlockAPI, AdvancedChests, ProCosmetics, GriefDefender, CoreProtect]
 depend: [CMI, CoinsEngine, ProCosmetics]
