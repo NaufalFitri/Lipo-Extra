@@ -434,11 +434,11 @@ public class Elevator implements Listener {
                         loc.setYaw(p.getYaw());
                         loc.setPitch(p.getPitch());
                         p.teleportAsync(loc);
-                        Bukkit.getScheduler().runTask(plugin, () -> {
+                        Bukkit.getScheduler().runTaskLater(plugin, () -> {
                             if (lastloc != null) {
                                 user.setLastTeleportLocation(lastloc, true);
                             }
-                        });
+                        }, 1L);
                     }
                 }
             });
@@ -498,11 +498,11 @@ public class Elevator implements Listener {
                     loc.setYaw(p.getYaw());
                     loc.setPitch(p.getPitch());
                     p.teleportAsync(loc);
-                    Bukkit.getScheduler().runTask(plugin, () -> {
+                    Bukkit.getScheduler().runTaskLater(plugin, () -> {
                         if (lastloc != null) {
                             user.setLastTeleportLocation(lastloc, true);
                         }
-                    });
+                    }, 1L);
                 }
             }
         });
