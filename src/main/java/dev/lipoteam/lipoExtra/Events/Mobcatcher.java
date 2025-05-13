@@ -129,98 +129,107 @@ public class Mobcatcher implements Listener {
                 if (ran <= chances) {
 
                     dataManager.setdata(item, "mob", true);
+                    boolean invulnerable = en.isInvulnerable();
+                    en.setInvulnerable(true);
                     en.setMetadata("catched", new FixedMetadataValue(plugin, true));
                     double[] tick = new double[]{1.0};
 
                     Bukkit.getScheduler().runTaskTimer(plugin, t -> {
 
                         if (tick[0] <= 0) {
-                            boolean baby = false;
-                            if (l instanceof Ageable a) {
-                                baby = !a.isAdult();
-                            }
-                            DyeColor color = null;
-                            boolean saddled = false;
-                            if (l instanceof Steerable st) {
-                                saddled = st.hasSaddle();
-                            }
-                            if (l instanceof Sheep s) {
-                                color = s.getColor();
-                            }
-                            UUID owner = null;
-                            String cattype = null;
-                            if (l instanceof Cat c) {
-                                cattype = c.getCatType().key().asString();
-                                owner = c.getOwnerUniqueId();
-                            }
-                            Rabbit.Type rabbittype = null;
-                            if (l instanceof Rabbit r) {
-                                rabbittype = r.getRabbitType();
-                            }
-                            Horse.Color horsecolor = null;
-                            Horse.Style horsestyle = null;
-                            if (l instanceof  Horse h) {
-                                horsecolor = h.getColor();
-                                horsestyle = h.getStyle();
-                                owner = h.getOwnerUniqueId();
-                            }
-                            Llama.Color lcolor = null;
-                            ItemStack carpet = null;
-                            boolean chest = false;
-                            int invsize = 0;
-                            ItemStack[] contents = null;
-                            if (l instanceof Llama ll) {
-                                lcolor = ll.getColor();
-                                owner = ll.getOwnerUniqueId();
-                                carpet = ll.getInventory().getDecor();
-                                chest = ll.isCarryingChest();
-                                contents = ll.getInventory().getStorageContents();
-                                invsize = ll.getInventory().getSize();
-                            }
-                            String variant = null;
-                            if (l instanceof Wolf w) {
-                                variant = w.getVariant().key().asString();
-                                owner = w.getOwnerUniqueId();
-                            }
-                            String fvariant = null;
-                            if (l instanceof Frog f) {
-                                fvariant = f.getVariant().key().asString();
-                            }
-                            ItemStack helmet = null;
-                            ItemStack chestplate = null;
-                            ItemStack leggings = null;
-                            ItemStack boots = null;
-                            ItemStack mainhand = null;
-                            ItemStack offhand = null;
-                            if (l.getEquipment() != null) {
-                                helmet = l.getEquipment().getHelmet();
-                                chestplate = l.getEquipment().getChestplate();
-                                leggings = l.getEquipment().getLeggings();
-                                boots = l.getEquipment().getBoots();
-                                mainhand = l.getEquipment().getItemInMainHand();
-                                offhand = l.getEquipment().getItemInOffHand();
-                            }
-                            int size = 0;
-                            if (l instanceof Slime s) {
-                                size = s.getSize();
-                            }
-                            dataManager.setdata(item, "mob", new MobData(l.getType(), l.getCustomName(), l.getHealth(), helmet, chestplate
-                                    , leggings, boots, mainhand, offhand, l.getActivePotionEffects(),
-                                    baby, l.isGlowing(), l.isInvisible(), l.hasAI(), l.isInvulnerable(), l.isSilent(), color, cattype, rabbittype, horsecolor,
-                                    horsestyle, lcolor, carpet,contents,chest,invsize, variant,owner, fvariant, size, saddled));
-                            l.remove();
-                            ItemMeta meta = item.getItemMeta();
-                            if (meta != null) {
-                                meta.setEnchantmentGlintOverride(true);
-                                List<Component> lore = moblore.stream()
-                                        .map(lo -> mm.deserialize(lo.replace("[mob]", en.getType().name())))
-                                        .collect(Collectors.toList());
-                                meta.lore(lore);
-                                item.setItemMeta(meta);
-                            }
-                            p.sendMessage(mm.deserialize(catched.replace("[prefix]", prefix).replace("[mob]", en.getType().name())));
-                            if (coreapi != null) {
-                                boolean success = coreapi.logChat(p,  "MobCatching at " + en.getLocation().getBlockX() + ", " + en.getLocation().getBlockY() + ", " + en.getLocation().getBlockZ()+ " " + en.getWorld());
+                            if (!l.isDead()) {
+                                boolean baby = false;
+                                if (l instanceof Ageable a) {
+                                    baby = !a.isAdult();
+                                }
+                                DyeColor color = null;
+                                boolean saddled = false;
+                                if (l instanceof Steerable st) {
+                                    saddled = st.hasSaddle();
+                                }
+                                if (l instanceof Sheep s) {
+                                    color = s.getColor();
+                                }
+                                UUID owner = null;
+                                String cattype = null;
+                                if (l instanceof Cat c) {
+                                    cattype = c.getCatType().key().asString();
+                                    owner = c.getOwnerUniqueId();
+                                }
+                                Rabbit.Type rabbittype = null;
+                                if (l instanceof Rabbit r) {
+                                    rabbittype = r.getRabbitType();
+                                }
+                                Horse.Color horsecolor = null;
+                                Horse.Style horsestyle = null;
+                                if (l instanceof Horse h) {
+                                    horsecolor = h.getColor();
+                                    horsestyle = h.getStyle();
+                                    owner = h.getOwnerUniqueId();
+                                }
+                                Llama.Color lcolor = null;
+                                ItemStack carpet = null;
+                                boolean chest = false;
+                                int invsize = 0;
+                                ItemStack[] contents = null;
+                                if (l instanceof Llama ll) {
+                                    lcolor = ll.getColor();
+                                    owner = ll.getOwnerUniqueId();
+                                    carpet = ll.getInventory().getDecor();
+                                    chest = ll.isCarryingChest();
+                                    contents = ll.getInventory().getStorageContents();
+                                    invsize = ll.getInventory().getSize();
+                                }
+                                String variant = null;
+                                if (l instanceof Wolf w) {
+                                    variant = w.getVariant().key().asString();
+                                    owner = w.getOwnerUniqueId();
+                                }
+                                String fvariant = null;
+                                if (l instanceof Frog f) {
+                                    fvariant = f.getVariant().key().asString();
+                                }
+                                ItemStack helmet = null;
+                                ItemStack chestplate = null;
+                                ItemStack leggings = null;
+                                ItemStack boots = null;
+                                ItemStack mainhand = null;
+                                ItemStack offhand = null;
+                                if (l.getEquipment() != null) {
+                                    helmet = l.getEquipment().getHelmet();
+                                    chestplate = l.getEquipment().getChestplate();
+                                    leggings = l.getEquipment().getLeggings();
+                                    boots = l.getEquipment().getBoots();
+                                    mainhand = l.getEquipment().getItemInMainHand();
+                                    offhand = l.getEquipment().getItemInOffHand();
+                                }
+                                int size = 0;
+                                if (l instanceof Slime s) {
+                                    size = s.getSize();
+                                }
+                                dataManager.setdata(item, "mob", new MobData(l.getType(), l.getCustomName(), l.getHealth(), helmet, chestplate
+                                        , leggings, boots, mainhand, offhand, l.getActivePotionEffects(),
+                                        baby, l.isGlowing(), l.isInvisible(), l.hasAI(), invulnerable, l.isSilent(), color, cattype, rabbittype, horsecolor,
+                                        horsestyle, lcolor, carpet, contents, chest, invsize, variant, owner, fvariant, size, saddled));
+                                try {
+                                    l.remove();
+                                } catch (Exception ex) {
+                                    plugin.getLogger().warning(p.getName() + " Unable to catch a " + en.getType().name());
+                                }
+
+                                ItemMeta meta = item.getItemMeta();
+                                if (meta != null) {
+                                    meta.setEnchantmentGlintOverride(true);
+                                    List<Component> lore = moblore.stream()
+                                            .map(lo -> mm.deserialize(lo.replace("[mob]", en.getType().name())))
+                                            .collect(Collectors.toList());
+                                    meta.lore(lore);
+                                    item.setItemMeta(meta);
+                                }
+                                p.sendMessage(mm.deserialize(catched.replace("[prefix]", prefix).replace("[mob]", en.getType().name())));
+                                if (coreapi != null) {
+                                    boolean success = coreapi.logInteraction(p.getName() + "Catch" + en.getType().name(), p.getWorld().getHighestBlockAt(en.getLocation()).getLocation());
+                                }
                             }
                             t.cancel();
                         }
