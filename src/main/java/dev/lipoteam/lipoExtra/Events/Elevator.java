@@ -21,6 +21,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
+import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.event.player.PlayerToggleSneakEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
@@ -442,6 +443,18 @@ public class Elevator implements Listener {
                     }
                 }
             });
+        }
+    }
+
+    @EventHandler
+    private void PlayerTeleport(PlayerTeleportEvent e) {
+        if (!dataManager.hasData(e.getTo().clone().add(0, -0.15, 0).getBlock(), "elevator")) {
+            Player p = e.getPlayer();
+            if (actionbartask.containsKey(p.getUniqueId())) {
+                p.clearTitle();
+                actionbartask.get(p.getUniqueId()).cancel();
+                actionbartask.remove(p.getUniqueId());
+            }
         }
     }
 

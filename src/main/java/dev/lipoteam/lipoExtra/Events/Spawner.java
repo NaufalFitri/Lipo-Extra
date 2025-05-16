@@ -79,6 +79,8 @@ public class Spawner implements Listener {
 
     @EventHandler
     public void onSpawnerBreak(BlockBreakEvent e) {
+        if (e.isCancelled()) return;
+
         if (enabled && e.getPlayer().hasPermission("lipo.spawner.break")) {
             Block block = e.getBlock();
             Player p = e.getPlayer();

@@ -146,7 +146,7 @@ public class Event implements Listener {
     @EventHandler
     public void onUse(PlayerInteractEvent event) {
         ItemStack item = event.getItem();
-        if (item != null && item.getType() == Material.BUNDLE && event.getAction().isRightClick()) {
+        if (item != null && item.getType().name().contains("BUNDLE") && event.getAction().isRightClick()) {
             event.setCancelled(true);
 
             Player player = event.getPlayer();
